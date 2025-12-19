@@ -1,0 +1,23 @@
+{
+  "name": "sogni-image-demo-server",
+  "version": "1.0.0",
+  "description": "Backend server for Sogni Image Restoration Demo",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "npx kill-port 3001 && nodemon index.js"
+  },
+  "dependencies": {
+    "@sogni-ai/sogni-client": "^4.0.0-alpha.27",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.21.2",
+    "uuid": "^11.1.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}
+

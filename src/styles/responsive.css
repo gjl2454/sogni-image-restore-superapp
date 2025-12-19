@@ -1,0 +1,32 @@
+/* General responsive utilities */
+
+/* Mobile-first breakpoints */
+@media (max-width: 640px) {
+  /* Small screens */
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+@media (min-width: 641px) and (max-width: 1024px) {
+  /* Tablets */
+}
+
+@media (min-width: 1025px) {
+  /* Desktop */
+}
+
+/* Ensure images are responsive */
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Touch-friendly spacing on mobile */
+@media (max-width: 743px) {
+  .space-y-6 > * + * {
+    margin-top: 1.5rem;
+  }
+}
+

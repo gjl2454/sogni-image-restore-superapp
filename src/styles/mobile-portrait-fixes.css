@@ -1,0 +1,57 @@
+/* 
+  CRITICAL MOBILE PORTRAIT MODE FIXES
+  These rules use maximum specificity to override any existing styles
+*/
+
+/* Only apply these fixes in portrait mode on mobile devices */
+@media (max-width: 743px) and (orientation: portrait) {
+  /* Fix viewport height for mobile browsers */
+  :root {
+    --vh: 1vh;
+  }
+
+  html,
+  body {
+    height: 100%;
+    height: calc(var(--vh, 1vh) * 100);
+    overflow-x: hidden;
+  }
+
+  #root {
+    min-height: 100vh;
+    min-height: calc(var(--vh, 1vh) * 100);
+  }
+
+  /* Support for iOS safe area */
+  @supports (-webkit-touch-callout: none) {
+    #root {
+      min-height: -webkit-fill-available;
+    }
+  }
+
+  /* Ensure content doesn't overflow */
+  main {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+
+  /* Touch-friendly button sizes */
+  button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Prevent text size adjustment on iOS */
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}
+
+/* Mobile landscape fixes */
+@media (max-width: 743px) and (orientation: landscape) {
+  header {
+    padding-top: env(safe-area-inset-top, 0);
+  }
+}
+

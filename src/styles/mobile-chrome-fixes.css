@@ -1,0 +1,26 @@
+/* Mobile Chrome specific fixes */
+
+@media (max-width: 480px) {
+  /* Ensure proper touch targets */
+  button,
+  a {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Fix for Chrome mobile address bar */
+  @supports (height: 100dvh) {
+    html,
+    body {
+      height: 100dvh;
+    }
+  }
+}
+
+/* Prevent pull-to-refresh on mobile */
+body {
+  overscroll-behavior-y: contain;
+}
+
