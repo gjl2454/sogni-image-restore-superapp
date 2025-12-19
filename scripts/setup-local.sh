@@ -100,3 +100,4 @@ echo "3. Start the frontend: npm run dev"
 echo "4. Visit: https://restoration-local.sogni.ai"
 echo ""
 
+
