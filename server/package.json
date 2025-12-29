@@ -1,5 +1,5 @@
 {
-  "name": "sogni-image-demo-server",
+  "name": "sogni-image-restore-superapp-server",
   "version": "1.0.0",
   "description": "Backend server for Sogni Image Restoration Demo",
   "main": "index.js",

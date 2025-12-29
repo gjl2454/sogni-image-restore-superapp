@@ -1,4 +1,4 @@
-# Photo Restoration Demo
+# Sogni Image Restore Superapp
 
 A minimal, modern demo application for restoring damaged photos using the Sogni Client SDK. Upload a damaged photo and automatically restore it with AI-powered restoration.
 
@@ -83,7 +83,7 @@ The nginx reverse proxy routes:
 ## Project Structure
 
 ```
-sogni-image-demo/
+sogni-image-restore-superapp/
 ├── src/
 │   ├── components/
 │   │   ├── auth/          # Authentication components

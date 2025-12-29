@@ -23,40 +23,69 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
   const displayUrl = restoredUrl || imageUrl;
 
   return (
-    <div className="space-y-4">
+    <div className="h-full flex flex-col gap-4 overflow-hidden">
       {showComparison ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <h3 className="text-sm font-semibold text-gray-700">Original</h3>
-            <div className="relative bg-gray-100 rounded-lg overflow-hidden">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 min-h-0 overflow-hidden">
+          <div className="flex flex-col gap-3 min-h-0">
+            <h3 className="text-sm font-semibold flex-shrink-0 text-center" style={{
+              color: 'var(--color-text-secondary)',
+              letterSpacing: '0.05em',
+              textTransform: 'uppercase',
+              fontSize: '0.75rem'
+            }}>
+              Original
+            </h3>
+            <div className="relative overflow-hidden flex items-center justify-center flex-1 min-h-0" style={{
+              background: 'var(--color-bg)',
+              borderRadius: 'var(--radius-lg)',
+              border: '1px solid var(--color-border-light)'
+            }}>
               <img
                 src={originalUrl}
                 alt="Original"
-                className="w-full h-auto"
+                className="max-w-full max-h-full object-contain"
               />
             </div>
             {onDownload && (
               <button
                 onClick={() => onDownload(originalUrl)}
-                className="w-full bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300 font-medium text-sm"
+                className="w-full btn-secondary flex-shrink-0"
+                style={{
+                  padding: '0.625rem 1rem',
+                  fontSize: '0.875rem'
+                }}
               >
                 Download Original
               </button>
             )}
           </div>
-          <div className="space-y-2">
-            <h3 className="text-sm font-semibold text-gray-700">Restored</h3>
-            <div className="relative bg-gray-100 rounded-lg overflow-hidden">
+          <div className="flex flex-col gap-3 min-h-0">
+            <h3 className="text-sm font-semibold flex-shrink-0 text-center gradient-accent" style={{
+              letterSpacing: '0.05em',
+              textTransform: 'uppercase',
+              fontSize: '0.75rem'
+            }}>
+              Restored
+            </h3>
+            <div className="relative overflow-hidden flex items-center justify-center flex-1 min-h-0" style={{
+              background: 'var(--color-bg)',
+              borderRadius: 'var(--radius-lg)',
+              border: '1px solid var(--color-border-light)'
+            }}>
               <img
                 src={displayUrl}
                 alt="Restored"
-                className="w-full h-auto"
+                className="max-w-full max-h-full object-contain"
               />
             </div>
             {onDownload && (
               <button
                 onClick={() => onDownload(restoredUrl!)}
-                className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 font-medium text-sm"
+                className="w-full btn-primary flex-shrink-0"
+                style={{
+                  padding: '0.625rem 1rem',
+                  fontSize: '0.875rem'
+                }}
               >
                 Download Restored
               </button>
@@ -64,18 +93,30 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
           </div>
         </div>
       ) : (
-        <div className="space-y-4">
-          <div className="relative bg-gray-100 rounded-lg overflow-hidden">
+        <div className="flex-1 flex flex-col gap-3 min-h-0 overflow-hidden">
+          <div className="relative overflow-hidden flex items-center justify-center flex-1 min-h-0" style={{
+            background: 'var(--color-bg)',
+            borderRadius: 'var(--radius-lg)',
+            border: '1px solid var(--color-border-light)'
+          }}>
             <img
               src={displayUrl}
               alt="Preview"
-              className="w-full h-auto"
+              className="max-w-full max-h-full object-contain"
             />
             {isRestoring && (
-              <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+              <div className="absolute inset-0 flex items-center justify-center" style={{
+                background: 'rgba(0, 0, 0, 0.6)',
+                backdropFilter: 'blur(4px)'
+              }}>
                 <div className="text-center text-white">
-                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-white mb-2"></div>
-                  <p className="text-sm">Restoring... {Math.round(progress * 100)}%</p>
+                  <div className="inline-block animate-spin rounded-full h-12 w-12 border-2 border-transparent mb-3" style={{
+                    borderTopColor: 'var(--sogni-pink)',
+                    borderRightColor: 'var(--sogni-purple)'
+                  }}></div>
+                  <p className="text-sm font-medium" style={{ letterSpacing: '0.02em' }}>
+                    Restoring... {Math.min(Math.round(progress * 100), 100)}%
+                  </p>
                 </div>
               </div>
             )}
@@ -83,7 +124,11 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
           {!restoredUrl && !isRestoring && onRestore && (
             <button
               onClick={onRestore}
-              className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 font-medium text-lg"
+              className="w-full btn-primary flex-shrink-0"
+              style={{
+                padding: '0.875rem 1.5rem',
+                fontSize: '1rem'
+              }}
             >
               Restore Photo
             </button>

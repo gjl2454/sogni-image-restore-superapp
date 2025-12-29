@@ -77,10 +77,12 @@ export async function restorePhoto(
       
       if (onProgress && type === 'progress' && progress !== undefined) {
         const progressValue = typeof progress === 'number' ? progress : 0;
+        // Normalize progress to 0-1 range (SDK can send 0-1 or 0-100)
+        const normalizedProgress = progressValue > 1 ? progressValue / 100 : progressValue;
         onProgress({
           type: 'progress',
           jobId,
-          progress: progressValue
+          progress: normalizedProgress
         });
       }
     });
@@ -90,12 +92,15 @@ export async function restorePhoto(
       const progressValue = typeof progress === 'number' ? progress : 
         (typeof progress === 'object' && (progress as any).progress !== undefined) ? (progress as any).progress : 0;
       
-      console.log(`[RESTORE] Project progress: ${Math.floor(progressValue * 100)}%`);
+      // Normalize progress to 0-1 range (SDK can send 0-1 or 0-100)
+      const normalizedProgress = progressValue > 1 ? progressValue / 100 : progressValue;
+      
+      console.log(`[RESTORE] Project progress: ${Math.floor(normalizedProgress * 100)}%`);
       
       if (onProgress) {
         onProgress({
           type: 'progress',
-          progress: progressValue
+          progress: normalizedProgress
         });
       }
     });

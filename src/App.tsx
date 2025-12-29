@@ -9,6 +9,7 @@ import { UploadZone } from './components/UploadZone';
 import { ImagePreview } from './components/ImagePreview';
 import { ProgressIndicator } from './components/ProgressIndicator';
 import { OutOfCreditsPopup } from './components/OutOfCreditsPopup';
+import { BeforeAfterSlider } from './components/BeforeAfterSlider';
 import { downloadImage } from './utils/download';
 
 function App() {
@@ -83,17 +84,9 @@ function App() {
     await downloadImage(url, filename);
   }, [originalUrl]);
 
-  const handleNewPhoto = useCallback(() => {
-    clearUpload();
-    resetRestore();
-    resetVideo();
-    setOriginalUrl(null);
-  }, [clearUpload, resetRestore, resetVideo]);
-
   const handleGenerateVideo = useCallback(async () => {
-    const sourceUrl = restoredUrl || imageUrl;
-    if (!sourceUrl || !isAuthenticated) {
-      console.warn('[APP] Cannot generate video: missing image or not authenticated');
+    if (!restoredUrl || !isAuthenticated) {
+      console.warn('[APP] Cannot generate video: missing restored image or not authenticated');
       return;
     }
 
@@ -113,14 +106,21 @@ function App() {
     }
 
     try {
-      await generateVideo(client, sourceUrl, width, height, tokenType);
+      await generateVideo(client, restoredUrl, width, height, tokenType);
     } catch (error: any) {
       if (error.message === 'INSUFFICIENT_CREDITS' || 
           error.message?.toLowerCase().includes('insufficient')) {
         setShowOutOfCredits(true);
       }
     }
-  }, [restoredUrl, imageUrl, isAuthenticated, getSogniClient, balances, tokenType, width, height, generateVideo]);
+  }, [restoredUrl, isAuthenticated, getSogniClient, balances, tokenType, width, height, generateVideo]);
+
+  const handleNewPhoto = useCallback(() => {
+    clearUpload();
+    resetRestore();
+    resetVideo();
+    setOriginalUrl(null);
+  }, [clearUpload, resetRestore, resetVideo]);
 
   if (authLoading) {
     return (
@@ -174,12 +174,36 @@ function App() {
               }}>
                 Restore Your <span className="gradient-accent">Precious Memories</span>
               </h2>
-              <p className="text-lg lg:text-xl" style={{ 
+              <p className="text-lg lg:text-xl mb-8" style={{ 
                 color: 'var(--color-text-secondary)',
                 lineHeight: 1.6,
                 fontWeight: 400
               }}>
-                Sign in to experience AI-powered photo restoration that brings your damaged photos back to life.
+                See the magic in action with our interactive demo below.
+              </p>
+
+              {/* Before/After Demo */}
+              <div className="max-w-2xl mx-auto mb-8">
+                <BeforeAfterSlider
+                  beforeImage="/example-before.jpg"
+                  afterImage="/example-after.jpg"
+                  beforeLabel="Before"
+                  afterLabel="After"
+                />
+              </div>
+
+              <p className="text-base mb-8" style={{ 
+                color: 'var(--color-text-tertiary)'
+              }}>
+                Drag the slider to see the incredible restoration results!
+              </p>
+
+              <p className="text-lg" style={{ 
+                color: 'var(--color-text-secondary)',
+                lineHeight: 1.6,
+                fontWeight: 400
+              }}>
+                Sign in to start restoring your precious memories with AI-powered restoration.
               </p>
             </div>
           ) : (
@@ -248,6 +272,16 @@ function App() {
                       <ProgressIndicator 
                         progress={videoProgress} 
                         message="Bringing photo to life..." 
+                      />
+                    </div>
+                  )}
+
+                  {/* Restoration Progress */}
+                  {isRestoring && (
+                    <div className="card-premium p-4 flex-shrink-0">
+                      <ProgressIndicator 
+                        progress={progress} 
+                        message="Restoring your photo..." 
                       />
                     </div>
                   )}
@@ -333,7 +367,7 @@ function App() {
                             onDownload={handleDownload}
                           />
                         </div>
-                        {restoredUrl && !isRestoring && (
+                        {restoredUrl && !isRestoring && !isGeneratingVideo && (
                           <div className="flex justify-center flex-shrink-0">
                             <button
                               onClick={handleGenerateVideo}

@@ -63,11 +63,15 @@ export const UploadZone: React.FC<UploadZoneProps> = ({ onFileSelect, disabled }
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
       onClick={handleClick}
-      className={`
-        border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-all
-        ${isDragging ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400'}
-        ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
-      `}
+      className="card-premium text-center cursor-pointer"
+      style={{
+        padding: '4rem 1.5rem',
+        border: isDragging ? '2px dashed var(--sogni-pink)' : '2px dashed var(--color-border)',
+        background: isDragging ? 'var(--sogni-gradient-subtle)' : 'var(--color-bg-elevated)',
+        transition: 'all var(--transition-base)',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        opacity: disabled ? 0.5 : 1
+      }}
     >
       <input
         ref={fileInputRef}
@@ -77,17 +81,41 @@ export const UploadZone: React.FC<UploadZoneProps> = ({ onFileSelect, disabled }
         className="hidden"
         disabled={disabled}
       />
-      <div className="space-y-4">
-        <div className="text-6xl">📷</div>
-        <div>
-          <p className="text-lg font-semibold text-gray-700">
-            {isDragging ? 'Drop your photo here' : 'Drag & drop your damaged photo'}
-          </p>
-          <p className="text-sm text-gray-500 mt-2">or click to browse</p>
+      <div className="space-y-1">
+        <div style={{ 
+          fontSize: '2rem',
+          lineHeight: 1,
+          filter: isDragging ? 'brightness(1.2)' : 'none',
+          transition: 'all var(--transition-base)'
+        }}>
+          📷
         </div>
-        <p className="text-xs text-gray-400">
-          Supports JPG, PNG, WEBP (Max 10MB)
-        </p>
+        <div>
+          <p className="font-semibold" style={{
+            fontSize: '0.9375rem',
+            color: 'var(--color-text-primary)',
+            letterSpacing: '-0.01em',
+            marginBottom: '0.125rem',
+            lineHeight: 1.1
+          }}>
+            {isDragging ? '✨ Drop your photo here' : 'Drag & drop your photo'}
+          </p>
+          <p style={{
+            fontSize: '0.75rem',
+            color: 'var(--color-text-secondary)',
+            lineHeight: 1.1
+          }}>
+            or click to browse your files
+          </p>
+        </div>
+        <div style={{
+          fontSize: '0.625rem',
+          color: 'var(--color-text-tertiary)',
+          letterSpacing: '0.02em',
+          lineHeight: 1.1
+        }}>
+          Supports JPG, PNG, WEBP • Max 10MB
+        </div>
       </div>
     </div>
   );

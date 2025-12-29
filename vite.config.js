@@ -14,6 +14,7 @@ export default defineConfig({
     strictPort: true,
     https: false,  // HTTPS is handled by nginx, not Vite
     allowedHosts: ["restoration-local.sogni.ai", "localhost"],
+    hmr: false,  // Disable HMR for now to avoid WebSocket issues
     cors: {
       origin: ["https://restoration-local.sogni.ai"],
       methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
