@@ -23,12 +23,13 @@ interface RestorationProgress {
 
 /**
  * Restore a damaged photo using Flux Kontext model
+ * Returns 4 variations for user to choose from
  */
 export async function restorePhoto(
   sogniClient: SogniClient,
   params: RestorationParams,
   onProgress?: (progress: RestorationProgress) => void
-): Promise<string> {
+): Promise<string[]> {
   const {
     imageData,
     width,
@@ -52,7 +53,7 @@ export async function restorePhoto(
     height,
     steps: 24,
     guidance: 5.5,
-    numberOfMedia: 1,
+    numberOfMedia: 4, // Generate 4 variations for user to choose from
     outputFormat,
     sensitiveContentFilter: false, // Kontext model is not NSFW-aware
     contextImages: [imageData], // Kontext uses contextImages array
@@ -68,6 +69,8 @@ export async function restorePhoto(
   return new Promise((resolve, reject) => {
     let resolved = false;
     let timeoutId: NodeJS.Timeout;
+    const resultUrls: string[] = [];
+    const expectedResults = 4;
 
     // Listen to job events
     project.on('job', (event) => {
@@ -105,14 +108,20 @@ export async function restorePhoto(
       }
     });
 
-    // Listen to jobCompleted event
+    // Listen to jobCompleted event - collect all results
     project.on('jobCompleted', (job: any) => {
       console.log('[RESTORE] Job completed:', job);
       
       if (job.resultUrl && !resolved) {
-        resolved = true;
-        if (timeoutId) clearTimeout(timeoutId);
-        resolve(job.resultUrl);
+        resultUrls.push(job.resultUrl);
+        console.log(`[RESTORE] Collected ${resultUrls.length}/${expectedResults} results`);
+        
+        // Once we have all expected results, resolve
+        if (resultUrls.length >= expectedResults) {
+          resolved = true;
+          if (timeoutId) clearTimeout(timeoutId);
+          resolve(resultUrls);
+        }
       }
     });
 

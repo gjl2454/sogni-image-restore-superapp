@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useSogniAuth } from './services/sogniAuth';
 import { useWallet } from './hooks/useWallet';
 import { useImageUpload } from './hooks/useImageUpload';
@@ -15,8 +15,8 @@ import { downloadImage } from './utils/download';
 function App() {
   const { isAuthenticated, isLoading: authLoading, getSogniClient } = useSogniAuth();
   const { balances, tokenType } = useWallet();
-  const { file, imageUrl, imageData, width, height, error: uploadError, upload, clear: clearUpload } = useImageUpload();
-  const { isRestoring, progress, error: restoreError, restoredUrl, restore, reset: resetRestore } = useRestoration();
+  const { imageUrl, imageData, width, height, error: uploadError, upload, clear: clearUpload } = useImageUpload();
+  const { isRestoring, progress, error: restoreError, restoredUrls, selectedUrl, restore, selectResult, clearSelection, reset: resetRestore } = useRestoration();
   const { isGenerating: isGeneratingVideo, progress: videoProgress, error: videoError, videoUrl, generate: generateVideo, reset: resetVideo } = useVideo();
   
   const [showOutOfCredits, setShowOutOfCredits] = useState(false);
@@ -75,6 +75,17 @@ function App() {
     }
   }, [imageData, isAuthenticated, getSogniClient, balances, tokenType, width, height, restore, restoreError, resetRestore]);
 
+  // Auto-restore after upload
+  useEffect(() => {
+    if (imageData && imageUrl && !isRestoring && restoredUrls.length === 0 && !restoreError) {
+      // Small delay to ensure smooth UX transition
+      const timer = setTimeout(() => {
+        handleRestore();
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [imageData, imageUrl, isRestoring, restoredUrls.length, restoreError, handleRestore]);
+
   const handleDownload = useCallback(async (url: string) => {
     const isOriginal = url === originalUrl;
     console.log('Download request:', { url, originalUrl, isOriginal });
@@ -85,8 +96,8 @@ function App() {
   }, [originalUrl]);
 
   const handleGenerateVideo = useCallback(async () => {
-    if (!restoredUrl || !isAuthenticated) {
-      console.warn('[APP] Cannot generate video: missing restored image or not authenticated');
+    if (!selectedUrl || !isAuthenticated) {
+      console.warn('[APP] Cannot generate video: missing selected image or not authenticated');
       return;
     }
 
@@ -106,14 +117,14 @@ function App() {
     }
 
     try {
-      await generateVideo(client, restoredUrl, width, height, tokenType);
+      await generateVideo(client, selectedUrl, width, height, tokenType);
     } catch (error: any) {
       if (error.message === 'INSUFFICIENT_CREDITS' || 
           error.message?.toLowerCase().includes('insufficient')) {
         setShowOutOfCredits(true);
       }
     }
-  }, [restoredUrl, isAuthenticated, getSogniClient, balances, tokenType, width, height, generateVideo]);
+  }, [selectedUrl, isAuthenticated, getSogniClient, balances, tokenType, width, height, generateVideo]);
 
   const handleNewPhoto = useCallback(() => {
     clearUpload();
@@ -137,7 +148,7 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen w-screen flex flex-col" style={{ background: '#ffffff', display: 'flex', flexDirection: 'column', overflowY: 'auto', height: '100vh' }}>
+    <div className="h-screen w-screen flex flex-col overflow-hidden" style={{ background: '#ffffff' }}>
       {/* Header */}
     <header className="flex-shrink-0" style={{
       background: '#ffffff',
@@ -154,36 +165,27 @@ function App() {
     </header>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col" style={{ 
-        flex: '0 1 auto',
-        display: 'flex', 
-        flexDirection: 'column',
-        minHeight: '450px'
-      }}>
-        <div className="flex flex-col items-center justify-center p-0" style={{ 
-          minHeight: '450px',
-          paddingTop: '1rem',
-          paddingBottom: '1rem'
-        }}>
+      <main className="flex-1 flex flex-col min-h-0 overflow-hidden main-content-scroll">
+        <div className="flex flex-col items-center flex-1 min-h-0 px-4 py-6 lg:py-8 overflow-hidden">
           {!isAuthenticated ? (
-            <div className="text-center max-w-2xl fade-in">
-              <h2 className="text-4xl lg:text-5xl font-bold mb-6" style={{ 
+            <div className="text-center w-full max-w-2xl fade-in flex flex-col items-center justify-center my-auto">
+              <h2 className="font-bold mb-4 main-headline" style={{ 
                 color: 'var(--color-text-primary)',
                 letterSpacing: '-0.03em',
-                lineHeight: 1.1
+                lineHeight: 1.2
               }}>
-                Restore Your <span className="gradient-accent">Precious Memories</span>
+                Restore Your <span className="gradient-accent whitespace-nowrap">Precious Memories</span>
               </h2>
-              <p className="text-lg lg:text-xl mb-8" style={{ 
+              <p className="mb-6 main-description" style={{ 
                 color: 'var(--color-text-secondary)',
-                lineHeight: 1.6,
+                lineHeight: 1.5,
                 fontWeight: 400
               }}>
-                See the magic in action with our interactive demo below.
+                See the magic in&nbsp;action with our interactive demo&nbsp;below.
               </p>
 
               {/* Before/After Demo */}
-              <div className="max-w-2xl mx-auto mb-8">
+              <div className="w-full mx-auto mb-4 demo-container">
                 <BeforeAfterSlider
                   beforeImage="/example-before.jpg"
                   afterImage="/example-after.jpg"
@@ -192,44 +194,28 @@ function App() {
                 />
               </div>
 
-              <p className="text-base mb-8" style={{ 
+              <p className="text-sm mb-4 px-4" style={{ 
                 color: 'var(--color-text-tertiary)'
               }}>
-                Drag the slider to see the incredible restoration results!
+                Drag the slider to see the incredible restoration&nbsp;results!
               </p>
 
-              <p className="text-lg" style={{ 
+              <p className="text-base px-4" style={{ 
                 color: 'var(--color-text-secondary)',
-                lineHeight: 1.6,
+                lineHeight: 1.5,
                 fontWeight: 400
               }}>
-                Sign in to start restoring your precious memories with AI-powered restoration.
+                Sign in to start restoring your precious memories with AI-powered&nbsp;restoration.
               </p>
             </div>
           ) : (
-            <div className="w-full max-w-7xl h-full flex flex-col gap-0 overflow-hidden">
+            <div className="w-full max-w-7xl flex-1 min-h-0 flex flex-col gap-0 overflow-hidden">
               {!imageUrl ? (
-                <div className="flex-1 flex flex-col items-center justify-center space-y-0.5 fade-in min-h-0 overflow-hidden" style={{ 
+                <div className="flex-1 flex flex-col items-center justify-center fade-in min-h-0 overflow-hidden" style={{ 
                   width: '100%',
                   paddingTop: '0.5rem',
                   paddingBottom: '0.5rem'
                 }}>
-                  <div className="text-center flex-shrink-0 mb-0.5">
-                    <h2 className="text-base font-bold mb-0.25" style={{ 
-                      color: 'var(--color-text-primary)',
-                      letterSpacing: '-0.02em',
-                      lineHeight: 1.2
-                    }}>
-                      Upload Your Photo
-                    </h2>
-                    <p style={{ 
-                      color: 'var(--color-text-secondary)',
-                      fontSize: '0.8125rem',
-                      lineHeight: 1.2
-                    }}>
-                      Drop your damaged photo here or click to browse
-                    </p>
-                  </div>
                   <div className="w-full max-w-xl flex-shrink-0 px-2">
                     <UploadZone onFileSelect={handleFileSelect} />
                   </div>
@@ -244,25 +230,25 @@ function App() {
                   )}
                 </div>
               ) : (
-                <div className="fade-in flex-1 flex flex-col gap-3 overflow-hidden min-h-0">
+                <div className="fade-in flex-1 min-h-0 flex flex-col gap-2 overflow-hidden">
                   {/* Header Row */}
                   <div className="flex justify-between items-center flex-shrink-0">
                     <h2 className="text-xl font-bold" style={{ 
                       color: 'var(--color-text-primary)',
                       letterSpacing: '-0.02em'
                     }}>
-                      {videoUrl ? '✨ Video Complete!' : restoredUrl ? '✨ Restoration Complete' : 'Ready to Restore'}
+                      {videoUrl ? '✨ Video Complete!' : isGeneratingVideo ? '🎬 Creating Video...' : selectedUrl ? '✨ Result Selected' : restoredUrls.length > 0 ? '🎨 Pick Your Favorite' : isRestoring ? '✨ Restoring Your Photo...' : 'Photo Uploaded'}
                     </h2>
                     <button
                       onClick={handleNewPhoto}
                       className="btn-secondary"
                       style={{
-                        padding: '0.5rem 1.25rem',
-                        fontSize: '0.875rem',
+                        padding: '0.5rem 1rem',
+                        fontSize: '0.8125rem',
                         fontWeight: 500
                       }}
                     >
-                      Upload New Photo
+                      ↻ New Photo
                     </button>
                   </div>
 
@@ -272,16 +258,6 @@ function App() {
                       <ProgressIndicator 
                         progress={videoProgress} 
                         message="Bringing photo to life..." 
-                      />
-                    </div>
-                  )}
-
-                  {/* Restoration Progress */}
-                  {isRestoring && (
-                    <div className="card-premium p-4 flex-shrink-0">
-                      <ProgressIndicator 
-                        progress={progress} 
-                        message="Restoring your photo..." 
                       />
                     </div>
                   )}
@@ -315,9 +291,9 @@ function App() {
                   )}
 
                   {/* Content Area */}
-                  <div className="flex-1 card-premium p-4 overflow-hidden flex flex-col min-h-0">
+                  <div className="flex-1 min-h-0 card-premium p-4 overflow-hidden flex flex-col">
                     {videoUrl ? (
-                      <div className="flex-1 flex flex-col items-center justify-center gap-4 min-h-0">
+                      <div className="flex-1 flex flex-col items-center gap-4 min-h-0" style={{ justifyContent: 'center' }}>
                         <video 
                           src={videoUrl} 
                           controls 
@@ -326,7 +302,13 @@ function App() {
                           className="max-w-full max-h-full object-contain"
                           style={{ 
                             borderRadius: 'var(--radius-lg)',
-                            boxShadow: 'var(--shadow-lg)'
+                            boxShadow: 'var(--shadow-lg)',
+                            maxWidth: '100%',
+                            maxHeight: '100%',
+                            width: 'auto',
+                            height: 'auto',
+                            objectFit: 'contain',
+                            display: 'block'
                           }}
                         />
                         <div className="flex gap-3 flex-shrink-0">
@@ -360,14 +342,17 @@ function App() {
                           <ImagePreview
                             imageUrl={imageUrl}
                             originalUrl={originalUrl || undefined}
-                            restoredUrl={restoredUrl || undefined}
+                            restoredUrls={restoredUrls}
+                            selectedUrl={selectedUrl}
                             onRestore={handleRestore}
+                            onSelectResult={selectResult}
+                            onClearSelection={clearSelection}
                             isRestoring={isRestoring}
                             progress={progress}
                             onDownload={handleDownload}
                           />
                         </div>
-                        {restoredUrl && !isRestoring && !isGeneratingVideo && (
+                        {selectedUrl && !isRestoring && !isGeneratingVideo && (
                           <div className="flex justify-center flex-shrink-0">
                             <button
                               onClick={handleGenerateVideo}
@@ -393,383 +378,115 @@ function App() {
         </div>
       </main>
 
-      {/* Tagline Section */}
-      {!imageUrl && isAuthenticated && (
-        <div className="flex-shrink-0" style={{
-          background: 'transparent',
-          padding: '0.125rem 0 2rem 0',
-          flex: '0 0 auto'
-        }}>
-          <div className="max-w-7xl mx-auto px-4 lg:px-6">
-            <div className="flex justify-center">
-              <div style={{ 
-                display: 'flex',
-                gap: '4rem',
-                maxWidth: '900px',
-                width: '100%'
-              }}>
-                <div style={{ flex: '1 1 0' }}>
-                  <p style={{
-                    fontSize: '3rem',
-                    color: 'var(--color-text-primary)',
-                    letterSpacing: '0.02em',
-                    fontWeight: 700,
-                    textAlign: 'left',
-                    lineHeight: 1.4
-                  }}>
-                    Timeless Restoration.<br />
-                    Preserve their Story.
-                  </p>
-                </div>
-                <div style={{ flex: '1 1 0' }}>
-                <h2 style={{
-                  fontSize: '1.5rem',
-                  color: 'var(--color-text-primary)',
-                  letterSpacing: '-0.02em',
-                  fontWeight: 600,
-                  textAlign: 'right',
-                  lineHeight: 1.4,
-                  marginBottom: '0.75rem',
-                  paddingRight: '4rem'
-                }}>
-                  How it Works
-                </h2>
-                <div style={{
-                  display: 'table',
-                  marginLeft: 'auto'
-                }}>
-                  <div style={{ display: 'table-row' }}>
-                    <div style={{
-                      display: 'table-cell',
-                      paddingRight: '0.5rem',
-                      verticalAlign: 'top',
-                      width: '2.25rem'
-                    }}>
-                      <span style={{
-                        width: '1.75rem',
-                        height: '1.75rem',
-                        borderRadius: '50%',
-                        background: 'var(--color-bg)',
-                        border: '1px solid var(--color-border)',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '0.75rem',
-                        fontWeight: 600,
-                        color: 'var(--color-text-primary)'
-                      }}>
-                        1
-                      </span>
-                    </div>
-                    <div style={{
-                      display: 'table-cell',
-                      verticalAlign: 'top'
-                    }}>
-                      <span style={{
-                        fontSize: '1rem',
-                        color: 'var(--color-text-primary)',
-                        lineHeight: 1.4
-                      }}>
-                        Upload your image
-                      </span>
-                    </div>
-                  </div>
-                  <div style={{ display: 'table-row' }}>
-                    <div style={{
-                      display: 'table-cell',
-                      paddingRight: '0.5rem',
-                      verticalAlign: 'top',
-                      width: '2.25rem'
-                    }}>
-                      <span style={{
-                        width: '1.75rem',
-                        height: '1.75rem',
-                        borderRadius: '50%',
-                        background: 'var(--color-bg)',
-                        border: '1px solid var(--color-border)',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '0.75rem',
-                        fontWeight: 600,
-                        color: 'var(--color-text-primary)'
-                      }}>
-                        2
-                      </span>
-                    </div>
-                    <div style={{
-                      display: 'table-cell',
-                      verticalAlign: 'top'
-                    }}>
-                      <span style={{
-                        fontSize: '1rem',
-                        color: 'var(--color-text-primary)',
-                        lineHeight: 1.4
-                      }}>
-                        Take a look at your new restored image!
-                      </span>
-                    </div>
-                  </div>
-                  <div style={{ display: 'table-row' }}>
-                    <div style={{
-                      display: 'table-cell',
-                      paddingRight: '0.5rem',
-                      verticalAlign: 'top',
-                      width: '2.25rem'
-                    }}>
-                      <span style={{
-                        width: '1.75rem',
-                        height: '1.75rem',
-                        borderRadius: '50%',
-                        background: 'var(--color-bg)',
-                        border: '1px solid var(--color-border)',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '0.75rem',
-                        fontWeight: 600,
-                        color: 'var(--color-text-primary)'
-                      }}>
-                        3
-                      </span>
-                    </div>
-                    <div style={{
-                      display: 'table-cell',
-                      verticalAlign: 'top'
-                    }}>
-                      <span style={{
-                        fontSize: '1rem',
-                        color: 'var(--color-text-primary)',
-                        lineHeight: 1.4
-                      }}>
-                        Download your image
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
-      {/* Footer - Take Control of Your Creative Journey */}
+      {/* Footer - Compact Design */}
       {!imageUrl && (
-        <footer style={{
+        <footer className="flex-shrink-0 app-footer" style={{
           background: 'var(--color-bg-elevated)',
-          padding: '1.5rem 0',
-          marginTop: '6rem',
-          width: '100%'
+          borderTop: '1px solid var(--color-border)',
+          padding: '1rem 0'
         }}>
           <div className="max-w-7xl mx-auto px-4 lg:px-6">
-            <div className="text-center mb-4">
-              <h2 style={{
-                fontSize: '1.125rem',
-                fontWeight: 600,
-                color: 'var(--color-text-primary)',
-                letterSpacing: '-0.02em',
-                marginBottom: '0.25rem'
-              }}>
-                Take Control of Your Creative Journey
-              </h2>
-              <p style={{
-                fontSize: '0.8125rem',
-                color: 'var(--color-text-secondary)',
-                marginBottom: '1rem'
-              }}>
-                Discover Creative AI Tools powered by the Sogni Supernet.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
-            {/* Sogni Studio Pro */}
-            <a
-              href="https://www.sogni.ai/studio"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="card-premium p-3 text-center hover:shadow-lg transition-all"
-              style={{
-                textDecoration: 'none',
-                cursor: 'pointer'
-              }}
-            >
-              <div style={{
-                fontSize: '1.75rem',
-                marginBottom: '0.5rem'
-              }}>💻</div>
-              <h3 style={{
-                fontSize: '1rem',
-                fontWeight: 600,
-                color: 'var(--color-text-primary)',
-                marginBottom: '0.375rem',
-                letterSpacing: '-0.01em'
-              }}>
-                Sogni Studio Pro
-              </h3>
-              <p style={{
-                fontSize: '0.8125rem',
-                color: 'var(--color-text-secondary)',
-                marginBottom: '0.5rem',
-                fontWeight: 500
-              }}>
-                Dream it. Make it.
-              </p>
-              <p style={{
-                fontSize: '0.6875rem',
-                color: 'var(--color-text-tertiary)',
-                letterSpacing: '0.02em'
-              }}>
-                For Mac
-              </p>
-            </a>
-
-            {/* Sogni Pocket */}
-            <a
-              href="https://www.sogni.ai/pocket"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="card-premium p-3 text-center hover:shadow-lg transition-all"
-              style={{
-                textDecoration: 'none',
-                cursor: 'pointer'
-              }}
-            >
-              <div style={{
-                fontSize: '1.75rem',
-                marginBottom: '0.5rem'
-              }}>📱</div>
-              <h3 style={{
-                fontSize: '1rem',
-                fontWeight: 600,
-                color: 'var(--color-text-primary)',
-                marginBottom: '0.375rem',
-                letterSpacing: '-0.01em'
-              }}>
-                Sogni Pocket
-              </h3>
-              <p style={{
-                fontSize: '0.8125rem',
-                color: 'var(--color-text-secondary)',
-                marginBottom: '0.5rem',
-                fontWeight: 500
-              }}>
-                Create anywhere.
-              </p>
-              <p style={{
-                fontSize: '0.6875rem',
-                color: 'var(--color-text-tertiary)',
-                letterSpacing: '0.02em'
-              }}>
-                For iPhone & iPad
-              </p>
-            </a>
-
-            {/* Sogni Web */}
-            <a
-              href="https://web.sogni.ai"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="card-premium p-3 text-center hover:shadow-lg transition-all"
-              style={{
-                textDecoration: 'none',
-                cursor: 'pointer'
-              }}
-            >
-              <div style={{
-                fontSize: '1.75rem',
-                marginBottom: '0.5rem'
-              }}>🌐</div>
-              <h3 style={{
-                fontSize: '1rem',
-                fontWeight: 600,
-                color: 'var(--color-text-primary)',
-                marginBottom: '0.375rem',
-                letterSpacing: '-0.01em'
-              }}>
-                Sogni Web
-              </h3>
-              <p style={{
-                fontSize: '0.8125rem',
-                color: 'var(--color-text-secondary)',
-                marginBottom: '0.5rem',
-                fontWeight: 500
-              }}>
-                The power of Sogni on the web
-              </p>
-              <p style={{
-                fontSize: '0.6875rem',
-                color: 'var(--color-text-tertiary)',
-                letterSpacing: '0.02em'
-              }}>
-                For all browsers
-              </p>
-            </a>
-
-            {/* Photobooth */}
-            <a
-              href="https://photobooth.sogni.ai"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="card-premium p-3 text-center hover:shadow-lg transition-all"
-              style={{
-                textDecoration: 'none',
-                cursor: 'pointer'
-              }}
-            >
-              <div style={{
-                fontSize: '1.75rem',
-                marginBottom: '0.5rem'
-              }}>📸</div>
-              <h3 style={{
-                fontSize: '1rem',
-                fontWeight: 600,
-                color: 'var(--color-text-primary)',
-                marginBottom: '0.375rem',
-                letterSpacing: '-0.01em'
-              }}>
-                Photobooth
-              </h3>
-              <p style={{
-                fontSize: '0.8125rem',
-                color: 'var(--color-text-secondary)',
-                marginBottom: '0.5rem',
-                fontWeight: 500
-              }}>
-                Turn yourself into any Character.
-              </p>
-              <p style={{
-                fontSize: '0.6875rem',
-                color: 'var(--color-text-tertiary)',
-                letterSpacing: '0.02em'
-              }}>
-                For all browsers
-              </p>
-            </a>
-          </div>
-
-            <div className="text-center">
-              <a
-                href="https://www.sogni.ai/super-apps"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-secondary inline-block"
-                style={{
-                  textDecoration: 'none',
-                  padding: '0.5rem 1.25rem',
-                  fontSize: '0.8125rem'
-                }}
-              >
-                View All Super Apps
-              </a>
-              <p style={{
-                fontSize: '0.625rem',
-                color: 'var(--color-text-tertiary)',
-                marginTop: '0.5rem',
-                letterSpacing: '0.02em'
-              }}>
-                Powered by the Sogni Supernet.
-              </p>
+            <div className="flex flex-col md:flex-row items-center justify-between gap-2 footer-content">
+              <div className="text-center md:text-left footer-title">
+                <h2 className="footer-heading">
+                  Discover More Sogni&nbsp;Apps
+                </h2>
+                <p className="footer-subtitle">
+                  Powered by the Sogni&nbsp;Supernet
+                </p>
+              </div>
+              
+              <div className="flex flex-wrap items-center justify-center gap-1.5 footer-apps">
+                <a
+                  href="https://www.sogni.ai/studio"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="footer-app-link inline-flex items-center gap-1 px-2 py-1 rounded hover:opacity-80 transition-opacity"
+                  style={{
+                    background: 'var(--color-bg)',
+                    border: '1px solid var(--color-border)',
+                    textDecoration: 'none',
+                    fontSize: '0.75rem',
+                    fontWeight: 500,
+                    color: 'var(--color-text-primary)'
+                  }}
+                >
+                  <span style={{ fontSize: '0.875rem' }}>💻</span>
+                  <span className="footer-app-name">Studio&nbsp;Pro</span>
+                </a>
+                
+                <a
+                  href="https://www.sogni.ai/pocket"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="footer-app-link inline-flex items-center gap-1 px-2 py-1 rounded hover:opacity-80 transition-opacity"
+                  style={{
+                    background: 'var(--color-bg)',
+                    border: '1px solid var(--color-border)',
+                    textDecoration: 'none',
+                    fontSize: '0.75rem',
+                    fontWeight: 500,
+                    color: 'var(--color-text-primary)'
+                  }}
+                >
+                  <span style={{ fontSize: '0.875rem' }}>📱</span>
+                  <span className="footer-app-name">Pocket</span>
+                </a>
+                
+                <a
+                  href="https://web.sogni.ai"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="footer-app-link inline-flex items-center gap-1 px-2 py-1 rounded hover:opacity-80 transition-opacity"
+                  style={{
+                    background: 'var(--color-bg)',
+                    border: '1px solid var(--color-border)',
+                    textDecoration: 'none',
+                    fontSize: '0.75rem',
+                    fontWeight: 500,
+                    color: 'var(--color-text-primary)'
+                  }}
+                >
+                  <span style={{ fontSize: '0.875rem' }}>🌐</span>
+                  <span className="footer-app-name">Web</span>
+                </a>
+                
+                <a
+                  href="https://photobooth.sogni.ai"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="footer-app-link inline-flex items-center gap-1 px-2 py-1 rounded hover:opacity-80 transition-opacity"
+                  style={{
+                    background: 'var(--color-bg)',
+                    border: '1px solid var(--color-border)',
+                    textDecoration: 'none',
+                    fontSize: '0.75rem',
+                    fontWeight: 500,
+                    color: 'var(--color-text-primary)'
+                  }}
+                >
+                  <span style={{ fontSize: '0.875rem' }}>📸</span>
+                  <span className="footer-app-name">Photobooth</span>
+                </a>
+                
+                <a
+                  href="https://www.sogni.ai/super-apps"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="footer-app-link inline-flex items-center gap-0.5 px-2 py-1 rounded hover:opacity-80 transition-opacity"
+                  style={{
+                    background: 'var(--sogni-purple)',
+                    color: 'white',
+                    textDecoration: 'none',
+                    fontSize: '0.75rem',
+                    fontWeight: 600
+                  }}
+                >
+                  <span className="whitespace-nowrap">View&nbsp;All</span>
+                  <span>→</span>
+                </a>
+              </div>
             </div>
           </div>
         </footer>

@@ -76,7 +76,19 @@ export const AuthStatus: React.FC<AuthStatusProps> = ({ onPurchaseClick, onSignu
         <button
           onClick={handleLoginClick}
           disabled={isLoading}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+          className="auth-signin-btn"
+          style={{
+            background: 'var(--sogni-purple)',
+            color: 'white',
+            padding: '0.5rem 1rem',
+            borderRadius: '0.5rem',
+            border: 'none',
+            fontSize: '0.875rem',
+            fontWeight: 600,
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            opacity: isLoading ? 0.5 : 1
+          }}
         >
           {isLoading ? 'Loading...' : 'Sign In'}
         </button>

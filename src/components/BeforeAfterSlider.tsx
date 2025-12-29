@@ -65,10 +65,13 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
   return (
     <div 
       ref={containerRef}
-      className="relative w-full overflow-hidden select-none card-premium"
+      className="relative overflow-hidden select-none card-premium"
       style={{ 
-        aspectRatio: '16/9',
-        maxHeight: '500px',
+        aspectRatio: '896 / 1200',
+        width: '100%',
+        maxWidth: 'min(400px, 90vw)',
+        height: 'auto',
+        margin: '0 auto',
         cursor: isDragging ? 'grabbing' : 'grab',
         touchAction: 'none'
       }}

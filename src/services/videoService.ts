@@ -54,11 +54,12 @@ export async function generateVideo(
     modelId: quality.model,
     positivePrompt: prompt,
     negativePrompt: '',
+    stylePrompt: '',
     width: videoWidth,
     height: videoHeight,
     numberOfMedia: 1,
     sensitiveContentFilter: false,
-    startingImage: imageData,
+    referenceImage: imageData as any,
     numberOfFrames: frames,
     fps: 16,
     steps: quality.steps
@@ -72,7 +73,7 @@ export async function generateVideo(
     let timeoutId: NodeJS.Timeout;
 
     // Listen to job events
-    project.on('job', (event: any) => {
+    const jobListener = (event: any) => {
       const { type, jobId, progress } = event;
       
       console.log(`[VIDEO] Job event:`, { type, jobId, progress });
@@ -86,7 +87,12 @@ export async function generateVideo(
           progress: normalizedProgress
         });
       }
-    });
+    };
+    
+    // Attach listener (SDK may have different event names)
+    if (typeof (project as any).on === 'function') {
+      (project as any).on('job', jobListener);
+    }
 
     // Listen to project-level progress
     project.on('progress', (progress: any) => {

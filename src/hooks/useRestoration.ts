@@ -7,8 +7,11 @@ interface UseRestorationResult {
   isRestoring: boolean;
   progress: number;
   error: string | null;
-  restoredUrl: string | null;
+  restoredUrls: string[];
+  selectedUrl: string | null;
   restore: (client: SogniClient, imageData: Uint8Array, width: number, height: number, tokenType: TokenType) => Promise<void>;
+  selectResult: (url: string) => void;
+  clearSelection: () => void;
   reset: () => void;
 }
 
@@ -16,7 +19,8 @@ export function useRestoration(): UseRestorationResult {
   const [isRestoring, setIsRestoring] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  const [restoredUrl, setRestoredUrl] = useState<string | null>(null);
+  const [restoredUrls, setRestoredUrls] = useState<string[]>([]);
+  const [selectedUrl, setSelectedUrl] = useState<string | null>(null);
 
   const restore = useCallback(async (
     client: SogniClient,
@@ -28,10 +32,11 @@ export function useRestoration(): UseRestorationResult {
     setIsRestoring(true);
     setProgress(0);
     setError(null);
-    setRestoredUrl(null);
+    setRestoredUrls([]);
+    setSelectedUrl(null);
 
     try {
-      const resultUrl = await restorePhoto(
+      const resultUrls = await restorePhoto(
         client,
         { imageData, width, height, tokenType },
         (progressUpdate) => {
@@ -41,7 +46,7 @@ export function useRestoration(): UseRestorationResult {
         }
       );
 
-      setRestoredUrl(resultUrl);
+      setRestoredUrls(resultUrls);
       setProgress(1);
     } catch (err: any) {
       console.error('[RESTORE] Restoration failed:', err);
@@ -59,19 +64,31 @@ export function useRestoration(): UseRestorationResult {
     }
   }, []);
 
+  const selectResult = useCallback((url: string) => {
+    setSelectedUrl(url);
+  }, []);
+
+  const clearSelection = useCallback(() => {
+    setSelectedUrl(null);
+  }, []);
+
   const reset = useCallback(() => {
     setIsRestoring(false);
     setProgress(0);
     setError(null);
-    setRestoredUrl(null);
+    setRestoredUrls([]);
+    setSelectedUrl(null);
   }, []);
 
   return {
     isRestoring,
     progress,
     error,
-    restoredUrl,
+    restoredUrls,
+    selectedUrl,
     restore,
+    selectResult,
+    clearSelection,
     reset
   };
 }

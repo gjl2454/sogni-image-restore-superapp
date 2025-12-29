@@ -39,3 +39,34 @@ body {
   }
 }
 
+/* Sign in button hover effect */
+.auth-signin-btn:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(138, 35, 235, 0.3);
+}
+
+.auth-signin-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+/* Hover hint animation */
+@keyframes fadeInOut {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(10px);
+  }
+  20% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  80% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-10px);
+  }
+}
+
