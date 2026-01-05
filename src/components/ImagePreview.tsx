@@ -53,25 +53,36 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
             }}>
               Original
             </h3>
-            <div className="relative overflow-hidden flex items-center flex-1 min-h-0 image-preview-container" style={{
+            <div className="relative overflow-auto flex items-center justify-center flex-1 min-h-0 image-preview-container" style={{
               background: 'var(--color-bg)',
               borderRadius: 'var(--radius-lg)',
               border: '1px solid var(--color-border-light)',
-              justifyContent: 'center'
+              padding: '1rem',
+              position: 'relative'
             }}>
-              <img
-                src={originalUrl}
-                alt="Original"
-                className="max-w-full max-h-full object-contain"
-                style={{
-                  maxWidth: '100%',
-                  maxHeight: '100%',
-                  width: 'auto',
-                  height: 'auto',
-                  objectFit: 'contain',
-                  display: 'block'
-                }}
-              />
+              <div style={{
+                position: 'relative',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '100%',
+                height: '100%',
+                minWidth: 0,
+                minHeight: 0
+              }}>
+                <img
+                  src={originalUrl}
+                  alt="Original"
+                  style={{
+                    maxWidth: '100%',
+                    maxHeight: '100%',
+                    width: 'auto',
+                    height: 'auto',
+                    objectFit: 'contain',
+                    display: 'block'
+                  }}
+                />
+              </div>
             </div>
             {onDownload && (
               <button
@@ -94,25 +105,36 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
             }}>
               Selected Result
             </h3>
-            <div className="relative overflow-hidden flex items-center flex-1 min-h-0 image-preview-container" style={{
+            <div className="relative overflow-auto flex items-center justify-center flex-1 min-h-0 image-preview-container" style={{
               background: 'var(--color-bg)',
               borderRadius: 'var(--radius-lg)',
               border: '1px solid var(--color-border-light)',
-              justifyContent: 'center'
+              padding: '1rem',
+              position: 'relative'
             }}>
-              <img
-                src={displayUrl}
-                alt="Selected Result"
-                className="max-w-full max-h-full object-contain"
-                style={{
-                  maxWidth: '100%',
-                  maxHeight: '100%',
-                  width: 'auto',
-                  height: 'auto',
-                  objectFit: 'contain',
-                  display: 'block'
-                }}
-              />
+              <div style={{
+                position: 'relative',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '100%',
+                height: '100%',
+                minWidth: 0,
+                minHeight: 0
+              }}>
+                <img
+                  src={displayUrl}
+                  alt="Selected Result"
+                  style={{
+                    maxWidth: '100%',
+                    maxHeight: '100%',
+                    width: 'auto',
+                    height: 'auto',
+                    objectFit: 'contain',
+                    display: 'block'
+                  }}
+                />
+              </div>
             </div>
             <div className="flex gap-2 flex-shrink-0">
               {onClearSelection && restoredUrls.length > 1 && (
@@ -144,21 +166,27 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
         </div>
       ) : (
         <div className="flex-1 flex flex-col gap-3 min-h-0 overflow-hidden">
-          <div className="overflow-hidden flex items-center flex-1 min-h-0 image-preview-container" style={{
+          <div className="overflow-auto flex items-center justify-center flex-1 min-h-0 image-preview-container" style={{
             background: 'var(--color-bg)',
             borderRadius: 'var(--radius-lg)',
             border: '1px solid var(--color-border-light)',
-            justifyContent: 'center'
+            padding: '1rem',
+            position: 'relative'
           }}>
             {/* Image wrapper with overlay */}
             <div className="relative" style={{
-              maxWidth: '100%',
-              maxHeight: '100%'
+              position: 'relative',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '100%',
+              height: '100%',
+              minWidth: 0,
+              minHeight: 0
             }}>
               <img
                 src={displayUrl}
                 alt="Preview"
-                className="max-w-full max-h-full object-contain"
                 style={{
                   maxWidth: '100%',
                   maxHeight: '100%',

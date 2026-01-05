@@ -11,6 +11,7 @@ interface RestorationParams {
   tokenType: TokenType;
   customPrompt?: string;
   outputFormat?: 'jpg' | 'png';
+  numberOfMedia?: number;
 }
 
 interface RestorationProgress {
@@ -36,7 +37,8 @@ export async function restorePhoto(
     height,
     tokenType,
     customPrompt,
-    outputFormat = 'jpg'
+    outputFormat = 'jpg',
+    numberOfMedia = 4
   } = params;
 
   const prompt = customPrompt || 'Restore and repair this damaged photograph, remove scratches, tears, stains, and age-related damage, enhance details and colors while preserving the original character';
@@ -53,7 +55,7 @@ export async function restorePhoto(
     height,
     steps: 24,
     guidance: 5.5,
-    numberOfMedia: 4, // Generate 4 variations for user to choose from
+    numberOfMedia, // Generate specified number of variations for user to choose from
     outputFormat,
     sensitiveContentFilter: false, // Kontext model is not NSFW-aware
     contextImages: [imageData], // Kontext uses contextImages array
@@ -70,7 +72,7 @@ export async function restorePhoto(
     let resolved = false;
     let timeoutId: NodeJS.Timeout;
     const resultUrls: string[] = [];
-    const expectedResults = 4;
+    const expectedResults = numberOfMedia;
 
     // Listen to job events
     project.on('job', (event) => {

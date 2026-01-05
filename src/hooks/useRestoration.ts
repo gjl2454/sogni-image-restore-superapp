@@ -9,7 +9,7 @@ interface UseRestorationResult {
   error: string | null;
   restoredUrls: string[];
   selectedUrl: string | null;
-  restore: (client: SogniClient, imageData: Uint8Array, width: number, height: number, tokenType: TokenType) => Promise<void>;
+  restore: (client: SogniClient, imageData: Uint8Array, width: number, height: number, tokenType: TokenType, numberOfMedia?: number) => Promise<void>;
   selectResult: (url: string) => void;
   clearSelection: () => void;
   reset: () => void;
@@ -27,7 +27,8 @@ export function useRestoration(): UseRestorationResult {
     imageData: Uint8Array,
     width: number,
     height: number,
-    tokenType: TokenType
+    tokenType: TokenType,
+    numberOfMedia: number = 4
   ) => {
     setIsRestoring(true);
     setProgress(0);
@@ -38,7 +39,7 @@ export function useRestoration(): UseRestorationResult {
     try {
       const resultUrls = await restorePhoto(
         client,
-        { imageData, width, height, tokenType },
+        { imageData, width, height, tokenType, numberOfMedia },
         (progressUpdate) => {
           if (progressUpdate.progress !== undefined) {
             setProgress(progressUpdate.progress);

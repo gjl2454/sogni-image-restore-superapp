@@ -19,10 +19,18 @@ export const ResultsCarousel: React.FC<ResultsCarouselProps> = ({
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const [showComparison, setShowComparison] = useState(false);
   const [isRevealed, setIsRevealed] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
   if (results.length === 0) return null;
 
   const currentResult = results[currentIndex];
+  
+  // Handle smooth transitions
+  useEffect(() => {
+    setIsTransitioning(true);
+    const timer = setTimeout(() => setIsTransitioning(false), 300);
+    return () => clearTimeout(timer);
+  }, [currentIndex]);
   
   // Dramatic reveal animation on mount
   useEffect(() => {
@@ -92,18 +100,23 @@ export const ResultsCarousel: React.FC<ResultsCarouselProps> = ({
     <div className="h-full flex flex-col gap-4 overflow-hidden">
       {/* Header with instructions */}
       <div className="text-center flex-shrink-0">
-        <p className="font-semibold" style={{
-          color: 'var(--color-text-primary)',
-          fontSize: '0.9375rem',
-          marginBottom: '0.25rem'
+        <p className="font-bold" style={{
+          background: 'var(--sogni-gradient)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          backgroundClip: 'text',
+          fontSize: '1.0625rem',
+          marginBottom: '0.375rem',
+          letterSpacing: '-0.01em'
         }}>
-          Review Your Results
+          ✨ Review Your Results
         </p>
         <p style={{
           color: 'var(--color-text-secondary)',
-          fontSize: '0.8125rem'
+          fontSize: '0.8125rem',
+          fontWeight: 500
         }}>
-          Navigate through {results.length} variations and pick your favorite
+          Navigate through {results.length} {results.length === 1 ? 'variation' : 'variations'} and pick your favorite
         </p>
       </div>
 
@@ -111,14 +124,16 @@ export const ResultsCarousel: React.FC<ResultsCarouselProps> = ({
       <div 
         className="flex-1 min-h-0 relative overflow-hidden flex items-center" 
         style={{
-          background: 'var(--color-bg)',
+          background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
           borderRadius: 'var(--radius-lg)',
-          border: '2px solid var(--color-border)',
+          border: '1px solid rgba(138, 35, 235, 0.15)',
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(138, 35, 235, 0.1)',
           justifyContent: 'center',
           touchAction: 'pan-y pinch-zoom',
           opacity: isRevealed ? 1 : 0,
           transform: isRevealed ? 'scale(1)' : 'scale(0.95)',
-          transition: 'opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1), transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)'
+          transition: 'opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1), transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
+          position: 'relative'
         }}
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
@@ -126,12 +141,14 @@ export const ResultsCarousel: React.FC<ResultsCarouselProps> = ({
       >
         {/* Result number badge */}
         <div 
-          className="absolute top-4 left-4 px-3 py-1.5 rounded-full text-sm font-semibold"
+          className="absolute top-5 left-5 px-4 py-2 rounded-full text-sm font-semibold"
           style={{
-            background: 'var(--sogni-gradient)',
+            background: 'linear-gradient(135deg, rgba(138, 35, 235, 0.95) 0%, rgba(236, 72, 153, 0.95) 100%)',
             color: 'white',
-            boxShadow: '0 2px 8px rgba(138, 35, 235, 0.3)',
-            zIndex: 40
+            backdropFilter: 'blur(12px)',
+            zIndex: 40,
+            letterSpacing: '0.025em',
+            border: '1px solid rgba(255, 255, 255, 0.2)'
           }}
         >
           Result {currentIndex + 1} of {results.length}
@@ -141,18 +158,29 @@ export const ResultsCarousel: React.FC<ResultsCarouselProps> = ({
         {results.length > 1 && (
           <button
             onClick={handlePrevious}
-            className="absolute left-4 p-3 rounded-full transition-all duration-200 hover:scale-110 carousel-nav-button"
+            className="absolute left-4 top-1/2 -translate-y-1/2 p-4 rounded-full transition-all duration-300 hover:scale-110 active:scale-95 carousel-nav-button"
             style={{
-              background: 'rgba(0, 0, 0, 0.6)',
-              backdropFilter: 'blur(8px)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              color: 'white',
+              background: 'rgba(255, 255, 255, 0.95)',
+              backdropFilter: 'blur(16px)',
+              border: '1px solid rgba(138, 35, 235, 0.2)',
+              color: 'var(--sogni-purple)',
               cursor: 'pointer',
-              zIndex: 40
+              zIndex: 40,
+              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(138, 35, 235, 0.1)'
             }}
             aria-label="Previous result"
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'var(--sogni-gradient)';
+              e.currentTarget.style.color = 'white';
+              e.currentTarget.style.boxShadow = '0 6px 24px rgba(138, 35, 235, 0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.95)';
+              e.currentTarget.style.color = 'var(--sogni-purple)';
+              e.currentTarget.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(138, 35, 235, 0.1)';
+            }}
           >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="15 18 9 12 15 6"></polyline>
             </svg>
           </button>
@@ -183,7 +211,10 @@ export const ResultsCarousel: React.FC<ResultsCarouselProps> = ({
               width: 'auto',
               height: 'auto',
               objectFit: 'contain',
-              display: 'block'
+              display: 'block',
+              opacity: isTransitioning ? 0.7 : 1,
+              transform: isTransitioning ? 'scale(0.98)' : 'scale(1)',
+              transition: 'opacity 0.3s ease-out, transform 0.3s ease-out'
             }}
             onMouseEnter={() => originalImage && setShowComparison(true)}
           />
@@ -211,18 +242,29 @@ export const ResultsCarousel: React.FC<ResultsCarouselProps> = ({
         {results.length > 1 && (
           <button
             onClick={handleNext}
-            className="absolute right-4 p-3 rounded-full transition-all duration-200 hover:scale-110 carousel-nav-button"
+            className="absolute right-4 top-1/2 -translate-y-1/2 p-4 rounded-full transition-all duration-300 hover:scale-110 active:scale-95 carousel-nav-button"
             style={{
-              background: 'rgba(0, 0, 0, 0.6)',
-              backdropFilter: 'blur(8px)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              color: 'white',
+              background: 'rgba(255, 255, 255, 0.95)',
+              backdropFilter: 'blur(16px)',
+              border: '1px solid rgba(138, 35, 235, 0.2)',
+              color: 'var(--sogni-purple)',
               cursor: 'pointer',
-              zIndex: 40
+              zIndex: 40,
+              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(138, 35, 235, 0.1)'
             }}
             aria-label="Next result"
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'var(--sogni-gradient)';
+              e.currentTarget.style.color = 'white';
+              e.currentTarget.style.boxShadow = '0 6px 24px rgba(138, 35, 235, 0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.95)';
+              e.currentTarget.style.color = 'var(--sogni-purple)';
+              e.currentTarget.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(138, 35, 235, 0.1)';
+            }}
           >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="9 18 15 12 9 6"></polyline>
             </svg>
           </button>
@@ -231,24 +273,42 @@ export const ResultsCarousel: React.FC<ResultsCarouselProps> = ({
 
       {/* Thumbnail navigation dots */}
       {results.length > 1 && (
-        <div className="flex justify-center gap-2 flex-shrink-0">
+        <div className="flex justify-center gap-3 flex-shrink-0 items-center py-2">
           {results.map((url, index) => (
             <button
               key={url}
               onClick={() => setCurrentIndex(index)}
-              className="transition-all duration-200"
+              className="transition-all duration-300 ease-out"
               style={{
-                width: currentIndex === index ? '32px' : '8px',
-                height: '8px',
-                borderRadius: '4px',
+                width: currentIndex === index ? '36px' : '10px',
+                height: '10px',
+                borderRadius: '10px',
                 background: currentIndex === index 
-                  ? 'var(--sogni-gradient)' 
-                  : 'var(--color-border)',
-                border: 'none',
+                  ? 'linear-gradient(135deg, rgba(138, 35, 235, 1) 0%, rgba(236, 72, 153, 1) 100%)' 
+                  : 'rgba(138, 35, 235, 0.25)',
+                border: currentIndex === index 
+                  ? '2px solid rgba(255, 255, 255, 0.3)' 
+                  : '2px solid transparent',
+                boxShadow: currentIndex === index 
+                  ? '0 2px 12px rgba(138, 35, 235, 0.4), 0 0 0 2px rgba(138, 35, 235, 0.1)' 
+                  : 'none',
                 cursor: 'pointer',
-                opacity: currentIndex === index ? 1 : 0.5
+                opacity: currentIndex === index ? 1 : 0.6,
+                transform: currentIndex === index ? 'scale(1.1)' : 'scale(1)'
               }}
               aria-label={`Go to result ${index + 1}`}
+              onMouseEnter={(e) => {
+                if (currentIndex !== index) {
+                  e.currentTarget.style.opacity = '0.9';
+                  e.currentTarget.style.transform = 'scale(1.05)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (currentIndex !== index) {
+                  e.currentTarget.style.opacity = '0.6';
+                  e.currentTarget.style.transform = 'scale(1)';
+                }
+              }}
             />
           ))}
         </div>
@@ -258,22 +318,26 @@ export const ResultsCarousel: React.FC<ResultsCarouselProps> = ({
       <div className="flex gap-3 flex-shrink-0">
         <button
           onClick={handleSelectCurrent}
-          className="flex-1 btn-primary"
+          className="flex-1 btn-primary transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
           style={{
             padding: '0.875rem 1.5rem',
             fontSize: '0.9375rem',
-            fontWeight: 600
+            fontWeight: 600,
+            boxShadow: '0 4px 16px rgba(138, 35, 235, 0.3)',
+            letterSpacing: '0.01em'
           }}
         >
-          Select This Result
+          ✨ Select This Result
         </button>
         {onDownload && (
           <button
             onClick={() => onDownload(currentResult)}
-            className="btn-secondary"
+            className="btn-secondary transition-all duration-300 hover:scale-110 active:scale-95"
             style={{
               padding: '0.875rem 1.25rem',
-              fontSize: '0.9375rem'
+              fontSize: '1.125rem',
+              minWidth: '48px',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
             }}
             title="Download this result"
           >

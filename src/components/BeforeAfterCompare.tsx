@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 
 interface BeforeAfterCompareProps {
   beforeImage: string;
@@ -11,48 +11,83 @@ export const BeforeAfterCompare: React.FC<BeforeAfterCompareProps> = ({
 }) => {
   const [sliderPosition, setSliderPosition] = useState(50);
   const [isDragging, setIsDragging] = useState(false);
+  const [isHovering, setIsHovering] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const handleMove = (clientX: number) => {
+  const handleMove = useCallback((clientX: number) => {
     if (!containerRef.current) return;
     
     const rect = containerRef.current.getBoundingClientRect();
     const x = clientX - rect.left;
     const percentage = (x / rect.width) * 100;
     setSliderPosition(Math.min(Math.max(percentage, 0), 100));
-  };
+  }, []);
 
-  const handleMouseDown = () => setIsDragging(true);
-  const handleMouseUp = () => setIsDragging(false);
+  const handleMouseDown = useCallback(() => setIsDragging(true), []);
+  const handleMouseUp = useCallback(() => setIsDragging(false), []);
   
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging) return;
-    handleMove(e.clientX);
-  };
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (isDragging) {
+      handleMove(e.clientX);
+    } else if (isHovering) {
+      handleMove(e.clientX);
+    }
+  }, [isDragging, isHovering, handleMove]);
 
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (e.touches.length > 0) {
+  const handleMouseEnter = useCallback(() => {
+    setIsHovering(true);
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    setIsHovering(false);
+    if (!isDragging) {
+      setSliderPosition(50);
+    }
+  }, [isDragging]);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (isDragging && e.touches.length > 0) {
       handleMove(e.touches[0].clientX);
     }
-  };
+  }, [isDragging, handleMove]);
+
+  useEffect(() => {
+    if (isDragging) {
+      const handleGlobalMouseMove = (e: MouseEvent) => {
+        handleMove(e.clientX);
+      };
+
+      document.addEventListener('mousemove', handleGlobalMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      document.addEventListener('touchmove', handleTouchMove as any);
+      document.addEventListener('touchend', handleMouseUp);
+
+      return () => {
+        document.removeEventListener('mousemove', handleGlobalMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+        document.removeEventListener('touchmove', handleTouchMove as any);
+        document.removeEventListener('touchend', handleMouseUp);
+      };
+    }
+  }, [isDragging, handleMouseUp, handleTouchMove, handleMove]);
 
   return (
     <div 
       ref={containerRef}
-      className="relative select-none cursor-ew-resize flex items-center"
+      className="relative select-none cursor-ew-resize flex items-center justify-center"
       style={{
         width: '100%',
         height: '100%',
         maxWidth: '100%',
-        maxHeight: '100%',
-        justifyContent: 'center'
+        maxHeight: '100%'
       }}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      onMouseMove={handleMouseMove}
       onMouseDown={handleMouseDown}
       onMouseUp={handleMouseUp}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseUp}
-      onTouchStart={() => setIsDragging(true)}
-      onTouchEnd={() => setIsDragging(false)}
+      onTouchStart={handleMouseDown}
+      onTouchEnd={handleMouseUp}
       onTouchMove={handleTouchMove}
     >
       {/* After Image (Full) - establishes dimensions */}
@@ -74,11 +109,11 @@ export const BeforeAfterCompare: React.FC<BeforeAfterCompareProps> = ({
 
       {/* Before Image (Clipped) - overlay */}
       <div 
-        className="absolute inset-0 overflow-hidden flex items-center"
+        className="absolute inset-0 overflow-hidden flex items-center justify-center"
         style={{ 
           clipPath: `inset(0 ${100 - sliderPosition}% 0 0)`,
-          justifyContent: 'center',
-          zIndex: 2
+          zIndex: 2,
+          transition: (isDragging || isHovering) ? 'none' : 'clip-path 0.3s ease'
         }}
       >
         <img
@@ -96,51 +131,134 @@ export const BeforeAfterCompare: React.FC<BeforeAfterCompareProps> = ({
         />
       </div>
 
-      {/* Slider Line */}
+      {/* Slider Divider */}
       <div
-        className="absolute top-0 bottom-0 w-1 cursor-ew-resize"
+        className="absolute top-0 bottom-0"
         style={{
           left: `${sliderPosition}%`,
-          background: 'linear-gradient(to bottom, var(--sogni-pink), var(--sogni-purple))',
-          boxShadow: '0 0 0 2px white, 0 0 10px rgba(0,0,0,0.3)',
+          width: '2px',
           transform: 'translateX(-50%)',
+          transition: (isDragging || isHovering) ? 'none' : 'left 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          pointerEvents: 'none',
           zIndex: 20
         }}
       >
-        {/* Slider Handle */}
+        {/* Soft glow */}
         <div
-          className="absolute top-1/2 left-1/2 w-10 h-10 rounded-full flex items-center justify-center"
+          className="absolute inset-0"
           style={{
-            background: 'white',
-            boxShadow: '0 2px 12px rgba(0,0,0,0.2)',
-            transform: 'translate(-50%, -50%)'
+            background: 'linear-gradient(180deg, rgba(138, 35, 235, 0.25) 0%, rgba(236, 72, 153, 0.25) 100%)',
+            filter: 'blur(12px)',
+            width: '24px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            opacity: isDragging || isHovering ? 0.8 : 0.5,
+            transition: 'opacity 0.3s ease'
           }}
+        />
+        
+        {/* Clean divider line */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background: 'rgba(255, 255, 255, 0.95)',
+            boxShadow: isDragging || isHovering
+              ? '0 0 24px rgba(138, 35, 235, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.8)'
+              : '0 0 16px rgba(138, 35, 235, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.7)',
+            width: '100%',
+            transition: 'box-shadow 0.3s ease'
+          }}
+        />
+        
+        {/* Minimal Handle */}
+        <div
+          className="absolute top-1/2 left-1/2 flex items-center justify-center transition-all duration-300"
+          style={{
+            transform: 'translate(-50%, -50%)',
+            width: isDragging || isHovering ? '38px' : '36px',
+            height: isDragging || isHovering ? '38px' : '36px',
+            background: 'rgba(255, 255, 255, 0.98)',
+            backdropFilter: 'blur(20px)',
+            borderRadius: '50%',
+            boxShadow: isDragging || isHovering
+              ? '0 6px 24px rgba(138, 35, 235, 0.5), 0 0 0 2px rgba(255, 255, 255, 0.9), 0 0 0 3px rgba(138, 35, 235, 0.15)'
+              : '0 3px 16px rgba(138, 35, 235, 0.3), 0 0 0 1.5px rgba(255, 255, 255, 0.85)',
+            cursor: isDragging ? 'grabbing' : 'grab',
+            pointerEvents: 'auto',
+            transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'
+          }}
+          onMouseDown={handleMouseDown}
+          onTouchStart={handleMouseDown}
         >
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-            <path d="M7 4L3 10L7 16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--sogni-purple)' }}/>
-            <path d="M13 4L17 10L13 16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--sogni-pink)' }}/>
-          </svg>
+          {/* Simple arrows */}
+          <div 
+            className="flex items-center justify-center gap-1"
+            style={{ 
+              transform: isDragging || isHovering ? 'scale(1.1)' : 'scale(1)',
+              transition: 'transform 0.3s ease'
+            }}
+          >
+            <svg width="12" height="16" viewBox="0 0 8 12" fill="none">
+              <defs>
+                <linearGradient id={`compare-arrow-left-${sliderPosition}`} x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="rgb(138, 35, 235)" />
+                  <stop offset="100%" stopColor="rgb(236, 72, 153)" />
+                </linearGradient>
+              </defs>
+              <path 
+                d="M6 2L2 6L6 10" 
+                stroke={`url(#compare-arrow-left-${sliderPosition})`}
+                strokeWidth="2.5" 
+                strokeLinecap="round" 
+                strokeLinejoin="round"
+              />
+            </svg>
+            <svg width="12" height="16" viewBox="0 0 8 12" fill="none">
+              <defs>
+                <linearGradient id={`compare-arrow-right-${sliderPosition}`} x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="rgb(138, 35, 235)" />
+                  <stop offset="100%" stopColor="rgb(236, 72, 153)" />
+                </linearGradient>
+              </defs>
+              <path 
+                d="M2 2L6 6L2 10" 
+                stroke={`url(#compare-arrow-right-${sliderPosition})`}
+                strokeWidth="2.5" 
+                strokeLinecap="round" 
+                strokeLinejoin="round"
+              />
+            </svg>
+          </div>
         </div>
       </div>
 
-      {/* Before/After Labels */}
-      <div className="absolute top-4 left-4 px-3 py-1.5 rounded-full text-sm font-semibold pointer-events-none" style={{
-        background: 'rgba(0, 0, 0, 0.6)',
-        backdropFilter: 'blur(8px)',
-        color: 'white',
-        zIndex: 30
-      }}>
-        Before
+      {/* Clean Labels */}
+      <div 
+        className="absolute top-16 left-4 px-3 py-1.5 rounded-full text-xs font-semibold pointer-events-none" 
+        style={{
+          background: 'rgba(138, 35, 235, 0.9)',
+          backdropFilter: 'blur(10px)',
+          color: 'white',
+          letterSpacing: '0.05em',
+          boxShadow: '0 2px 12px rgba(138, 35, 235, 0.4)',
+          zIndex: 30
+        }}
+      >
+        BEFORE
       </div>
-      <div className="absolute top-4 right-4 px-3 py-1.5 rounded-full text-sm font-semibold pointer-events-none" style={{
-        background: 'var(--sogni-gradient)',
-        color: 'white',
-        boxShadow: '0 2px 8px rgba(138, 35, 235, 0.3)',
-        zIndex: 30
-      }}>
-        After
+      <div 
+        className="absolute top-4 right-4 px-3 py-1.5 rounded-full text-xs font-semibold pointer-events-none" 
+        style={{
+          background: 'rgba(236, 72, 153, 0.9)',
+          backdropFilter: 'blur(10px)',
+          color: 'white',
+          letterSpacing: '0.05em',
+          boxShadow: '0 2px 12px rgba(236, 72, 153, 0.4)',
+          zIndex: 30
+        }}
+      >
+        AFTER
       </div>
     </div>
   );
 };
-

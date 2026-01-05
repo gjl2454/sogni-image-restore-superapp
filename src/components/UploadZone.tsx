@@ -3,9 +3,11 @@ import React, { useCallback, useState, useRef } from 'react';
 interface UploadZoneProps {
   onFileSelect: (file: File) => void;
   disabled?: boolean;
+  numberOfImages: number;
+  onNumberOfImagesChange: (count: number) => void;
 }
 
-export const UploadZone: React.FC<UploadZoneProps> = ({ onFileSelect, disabled }) => {
+export const UploadZone: React.FC<UploadZoneProps> = ({ onFileSelect, disabled, numberOfImages, onNumberOfImagesChange }) => {
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -115,6 +117,46 @@ export const UploadZone: React.FC<UploadZoneProps> = ({ onFileSelect, disabled }
           lineHeight: 1.1
         }}>
           Supports JPG, PNG, WEBP • Max 10MB
+        </div>
+      </div>
+      
+      {/* Number of images selector */}
+      <div className="mt-6 pt-4" style={{
+        borderTop: '1px solid var(--color-border-light)'
+      }}>
+        <p style={{
+          fontSize: '0.75rem',
+          color: 'var(--color-text-secondary)',
+          marginBottom: '0.75rem',
+          fontWeight: 500
+        }}>
+          Number of restored images:
+        </p>
+        <div className="flex gap-2 justify-center">
+          {[2, 4, 6].map((count) => (
+            <button
+              key={count}
+              onClick={(e) => {
+                e.stopPropagation();
+                onNumberOfImagesChange(count);
+              }}
+              style={{
+                padding: '0.5rem 1rem',
+                borderRadius: '0.5rem',
+                border: numberOfImages === count ? '2px solid var(--sogni-purple)' : '1px solid var(--color-border)',
+                background: numberOfImages === count ? 'var(--sogni-gradient-subtle)' : 'var(--color-bg)',
+                color: numberOfImages === count ? 'var(--sogni-purple)' : 'var(--color-text-primary)',
+                fontSize: '0.875rem',
+                fontWeight: numberOfImages === count ? 600 : 500,
+                cursor: disabled ? 'not-allowed' : 'pointer',
+                transition: 'all var(--transition-base)',
+                opacity: disabled ? 0.5 : 1
+              }}
+              disabled={disabled}
+            >
+              {count}
+            </button>
+          ))}
         </div>
       </div>
     </div>

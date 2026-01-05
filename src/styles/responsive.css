@@ -24,12 +24,28 @@ img {
 }
 
 /* Allow images in preview containers to be constrained by both width and height */
+.image-preview-container {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
 .image-preview-container img {
   max-width: 100% !important;
   max-height: 100% !important;
   width: auto !important;
   height: auto !important;
   object-fit: contain !important;
+  display: block !important;
+}
+
+/* Ensure image wrapper allows proper scaling */
+.image-preview-container > div {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
 
 /* Results carousel mobile optimization */

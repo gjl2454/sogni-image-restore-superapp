@@ -10,6 +10,7 @@ import { ImagePreview } from './components/ImagePreview';
 import { ProgressIndicator } from './components/ProgressIndicator';
 import { OutOfCreditsPopup } from './components/OutOfCreditsPopup';
 import { BeforeAfterSlider } from './components/BeforeAfterSlider';
+import { BeforeAfterGallery } from './components/BeforeAfterGallery';
 import { downloadImage } from './utils/download';
 
 function App() {
@@ -21,6 +22,7 @@ function App() {
   
   const [showOutOfCredits, setShowOutOfCredits] = useState(false);
   const [originalUrl, setOriginalUrl] = useState<string | null>(null);
+  const [numberOfImages, setNumberOfImages] = useState<number>(4);
 
   // Store original URL when image is uploaded
   useEffect(() => {
@@ -36,6 +38,10 @@ function App() {
     
     await upload(selectedFile);
   }, [upload, resetRestore]);
+
+  const handleNumberOfImagesChange = useCallback((count: number) => {
+    setNumberOfImages(count);
+  }, []);
 
   const handleRestore = useCallback(async () => {
     if (!imageData || !isAuthenticated) {
@@ -64,7 +70,7 @@ function App() {
     }
 
     try {
-      await restore(client, imageData, width, height, tokenType);
+      await restore(client, imageData, width, height, tokenType, numberOfImages);
     } catch (error: any) {
       // Error is already handled in useRestoration hook
       // Check if it's an insufficient credits error
@@ -73,7 +79,7 @@ function App() {
         setShowOutOfCredits(true);
       }
     }
-  }, [imageData, isAuthenticated, getSogniClient, balances, tokenType, width, height, restore, restoreError, resetRestore]);
+  }, [imageData, isAuthenticated, getSogniClient, balances, tokenType, width, height, numberOfImages, restore, restoreError, resetRestore]);
 
   // Auto-restore after upload
   useEffect(() => {
@@ -168,45 +174,46 @@ function App() {
       <main className="flex-1 flex flex-col min-h-0 overflow-hidden main-content-scroll">
         <div className="flex flex-col items-center flex-1 min-h-0 px-4 py-6 lg:py-8 overflow-hidden">
           {!isAuthenticated ? (
-            <div className="text-center w-full max-w-2xl fade-in flex flex-col items-center justify-center my-auto">
-              <h2 className="font-bold mb-4 main-headline" style={{ 
-                color: 'var(--color-text-primary)',
-                letterSpacing: '-0.03em',
-                lineHeight: 1.2
-              }}>
-                Restore Your <span className="gradient-accent whitespace-nowrap">Precious Memories</span>
-              </h2>
-              <p className="mb-6 main-description" style={{ 
-                color: 'var(--color-text-secondary)',
-                lineHeight: 1.5,
-                fontWeight: 400
-              }}>
-                See the magic in&nbsp;action with our interactive demo&nbsp;below.
-              </p>
-
-              {/* Before/After Demo */}
-              <div className="w-full mx-auto mb-4 demo-container">
-                <BeforeAfterSlider
-                  beforeImage="/example-before.jpg"
-                  afterImage="/example-after.jpg"
-                  beforeLabel="Before"
-                  afterLabel="After"
-                />
+            <div className="w-full flex flex-col items-center overflow-y-auto min-h-0">
+              {/* Hero Section */}
+              <div className="text-center w-full max-w-2xl fade-in flex flex-col items-center justify-center py-8 lg:py-12 flex-shrink-0">
+                <h2 className="font-bold mb-4 main-headline" style={{ 
+                  color: 'var(--color-text-primary)',
+                  letterSpacing: '-0.03em',
+                  lineHeight: 1.2
+                }}>
+                  Restore Your <span className="gradient-accent whitespace-nowrap">Precious Memories</span>
+                </h2>
+                <p className="mb-6 main-description" style={{ 
+                  color: 'var(--color-text-secondary)',
+                  lineHeight: 1.5,
+                  fontWeight: 400
+                }}>
+                  Transform damaged and faded photos into vibrant memories with AI-powered&nbsp;restoration.
+                </p>
               </div>
 
-              <p className="text-sm mb-4 px-4" style={{ 
-                color: 'var(--color-text-tertiary)'
-              }}>
-                Drag the slider to see the incredible restoration&nbsp;results!
-              </p>
+              {/* Before/After Gallery */}
+              <div className="w-full flex-shrink-0">
+                <BeforeAfterGallery />
+              </div>
 
-              <p className="text-base px-4" style={{ 
-                color: 'var(--color-text-secondary)',
-                lineHeight: 1.5,
-                fontWeight: 400
-              }}>
-                Sign in to start restoring your precious memories with AI-powered&nbsp;restoration.
-              </p>
+              {/* Call to Action */}
+              <div className="text-center w-full max-w-2xl fade-in flex flex-col items-center py-8 lg:py-12 flex-shrink-0">
+                <p className="text-lg font-semibold mb-2 px-4" style={{ 
+                  color: 'var(--color-text-primary)',
+                  lineHeight: 1.5
+                }}>
+                  Ready to restore your photos?
+                </p>
+                <p className="text-base px-4" style={{ 
+                  color: 'var(--color-text-secondary)',
+                  lineHeight: 1.5,
+                  fontWeight: 400
+                }}>
+                  Sign in to start restoring your precious memories with AI-powered&nbsp;restoration.
+                </p>
+              </div>
             </div>
           ) : (
             <div className="w-full max-w-7xl flex-1 min-h-0 flex flex-col gap-0 overflow-hidden">
@@ -217,7 +224,11 @@ function App() {
                   paddingBottom: '0.5rem'
                 }}>
                   <div className="w-full max-w-xl flex-shrink-0 px-2">
-                    <UploadZone onFileSelect={handleFileSelect} />
+                    <UploadZone 
+                      onFileSelect={handleFileSelect} 
+                      numberOfImages={numberOfImages}
+                      onNumberOfImagesChange={handleNumberOfImagesChange}
+                    />
                   </div>
                   {uploadError && (
                     <div className="card-premium px-5 py-3 max-w-2xl" style={{
@@ -239,17 +250,35 @@ function App() {
                     }}>
                       {videoUrl ? '✨ Video Complete!' : isGeneratingVideo ? '🎬 Creating Video...' : selectedUrl ? '✨ Result Selected' : restoredUrls.length > 0 ? '🎨 Pick Your Favorite' : isRestoring ? '✨ Restoring Your Photo...' : 'Photo Uploaded'}
                     </h2>
-                    <button
-                      onClick={handleNewPhoto}
-                      className="btn-secondary"
-                      style={{
-                        padding: '0.5rem 1rem',
-                        fontSize: '0.8125rem',
-                        fontWeight: 500
-                      }}
-                    >
-                      ↻ New Photo
-                    </button>
+                    <div className="flex flex-col gap-2 items-end">
+                      <button
+                        onClick={handleNewPhoto}
+                        className="btn-secondary"
+                        style={{
+                          padding: '0.5rem 1rem',
+                          fontSize: '0.8125rem',
+                          fontWeight: 500
+                        }}
+                      >
+                        ↻ New Photo
+                      </button>
+                      {restoredUrls.length > 0 && !isRestoring && (
+                        <button
+                          onClick={handleRestore}
+                          disabled={isRestoring || !imageData}
+                          className="btn-secondary"
+                          style={{
+                            padding: '0.5rem 1rem',
+                            fontSize: '0.8125rem',
+                            fontWeight: 500,
+                            opacity: (isRestoring || !imageData) ? 0.5 : 1,
+                            cursor: (isRestoring || !imageData) ? 'not-allowed' : 'pointer'
+                          }}
+                        >
+                          🔄 Retry
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   {/* Progress Indicator - Only show for video generation */}
@@ -338,7 +367,7 @@ function App() {
                       </div>
                     ) : (
                       <div className="flex-1 flex flex-col gap-4 overflow-hidden min-h-0">
-                        <div className="flex-1 min-h-0 overflow-hidden">
+                        <div className="flex-1 min-h-0 overflow-auto">
                           <ImagePreview
                             imageUrl={imageUrl}
                             originalUrl={originalUrl || undefined}
@@ -352,22 +381,6 @@ function App() {
                             onDownload={handleDownload}
                           />
                         </div>
-                        {selectedUrl && !isRestoring && !isGeneratingVideo && (
-                          <div className="flex justify-center flex-shrink-0">
-                            <button
-                              onClick={handleGenerateVideo}
-                              disabled={isGeneratingVideo}
-                              className="btn-primary flex items-center gap-2"
-                              style={{
-                                padding: '0.75rem 2rem',
-                                fontSize: '1rem'
-                              }}
-                            >
-                              <span style={{ fontSize: '1.25rem' }}>🎬</span>
-                              <span style={{ fontWeight: 600 }}>Bring to Life</span>
-                            </button>
-                          </div>
-                        )}
                       </div>
                     )}
                   </div>
