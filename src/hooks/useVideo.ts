@@ -51,6 +51,9 @@ export function useVideo(): UseVideoResult {
       } else {
         setError(err.message || 'Video generation failed. Please try again.');
       }
+      
+      // Re-throw so callers know the operation failed
+      throw err;
     } finally {
       setIsGenerating(false);
     }

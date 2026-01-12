@@ -11,6 +11,7 @@ import { ProgressIndicator } from './components/ProgressIndicator';
 import { OutOfCreditsPopup } from './components/OutOfCreditsPopup';
 import { BeforeAfterSlider } from './components/BeforeAfterSlider';
 import { BeforeAfterGallery } from './components/BeforeAfterGallery';
+import { FeaturesSection } from './components/FeaturesSection';
 import { downloadImage } from './utils/download';
 
 function App() {
@@ -44,12 +45,36 @@ function App() {
   }, []);
 
   const handleRestore = useCallback(async () => {
+    console.log('[APP] handleRestore called', {
+      hasImageData: !!imageData,
+      imageDataSize: imageData?.length,
+      isAuthenticated,
+      width,
+      height,
+      tokenType,
+      numberOfImages,
+      balances
+    });
+
     if (!imageData || !isAuthenticated) {
-      console.warn('[APP] Cannot restore: missing image data or not authenticated');
+      console.warn('[APP] Cannot restore: missing image data or not authenticated', {
+        hasImageData: !!imageData,
+        isAuthenticated
+      });
       return;
     }
 
     const client = getSogniClient();
+    console.log('[APP] Got Sogni client:', {
+      hasClient: !!client,
+      clientType: typeof client,
+      hasAccount: !!client?.account,
+      hasCurrentAccount: !!client?.account?.currentAccount,
+      // SDK has typo: isAuthenicated (missing 't')
+      isAuthenticated: (client?.account?.currentAccount as any)?.isAuthenicated,
+      username: client?.account?.currentAccount?.username
+    });
+
     if (!client) {
       console.error('[APP] No Sogni client available');
       return;
@@ -59,25 +84,38 @@ function App() {
     const currentBalance = balances?.[tokenType]?.net || '0';
     const balanceNum = parseFloat(currentBalance);
     
+    console.log('[APP] Balance check:', {
+      tokenType,
+      currentBalance,
+      balanceNum,
+      hasCredits: balanceNum > 0
+    });
+
     if (balanceNum <= 0) {
+      console.warn('[APP] No credits available, showing popup');
       setShowOutOfCredits(true);
       return;
     }
 
     // Reset any previous errors
     if (restoreError === 'INSUFFICIENT_CREDITS') {
+      console.log('[APP] Resetting previous INSUFFICIENT_CREDITS error');
       resetRestore();
     }
 
     try {
+      console.log('[APP] Calling restore function...');
       await restore(client, imageData, width, height, tokenType, numberOfImages);
+      console.log('[APP] Restore function completed successfully');
     } catch (error: any) {
-      // Error is already handled in useRestoration hook
-      // Check if it's an insufficient credits error
+      // Error state is already set by useRestoration hook
+      // We catch here to handle specific UI actions (like showing credit popup)
+      console.error('[APP] Restore function failed:', error?.message);
       if (error.message === 'INSUFFICIENT_CREDITS' || 
           error.message?.toLowerCase().includes('insufficient')) {
         setShowOutOfCredits(true);
       }
+      // Don't re-throw - error UI is shown via restoreError state
     }
   }, [imageData, isAuthenticated, getSogniClient, balances, tokenType, width, height, numberOfImages, restore, restoreError, resetRestore]);
 
@@ -124,11 +162,16 @@ function App() {
 
     try {
       await generateVideo(client, selectedUrl, width, height, tokenType);
+      console.log('[APP] Video generation completed successfully');
     } catch (error: any) {
+      // Error state is already set by useVideo hook
+      // We catch here to handle specific UI actions (like showing credit popup)
+      console.error('[APP] Video generation failed:', error?.message);
       if (error.message === 'INSUFFICIENT_CREDITS' || 
           error.message?.toLowerCase().includes('insufficient')) {
         setShowOutOfCredits(true);
       }
+      // Don't re-throw - error UI is shown via videoError state
     }
   }, [selectedUrl, isAuthenticated, getSogniClient, balances, tokenType, width, height, generateVideo]);
 
@@ -177,13 +220,13 @@ function App() {
             <div className="w-full flex flex-col items-center overflow-y-auto min-h-0">
               {/* Hero Section */}
               <div className="text-center w-full max-w-2xl fade-in flex flex-col items-center justify-center py-8 lg:py-12 flex-shrink-0">
-                <h2 className="font-bold mb-4 main-headline" style={{ 
+                <h1 className="font-bold mb-4 main-headline text-4xl lg:text-5xl xl:text-6xl" style={{ 
                   color: 'var(--color-text-primary)',
                   letterSpacing: '-0.03em',
                   lineHeight: 1.2
                 }}>
                   Restore Your <span className="gradient-accent whitespace-nowrap">Precious Memories</span>
-                </h2>
+                </h1>
                 <p className="mb-6 main-description" style={{ 
                   color: 'var(--color-text-secondary)',
                   lineHeight: 1.5,
@@ -191,6 +234,11 @@ function App() {
                 }}>
                   Transform damaged and faded photos into vibrant memories with AI-powered&nbsp;restoration.
                 </p>
+              </div>
+
+              {/* Features Section */}
+              <div className="w-full flex-shrink-0">
+                <FeaturesSection />
               </div>
 
               {/* Before/After Gallery */}

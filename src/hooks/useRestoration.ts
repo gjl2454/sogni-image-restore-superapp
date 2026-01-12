@@ -30,6 +30,18 @@ export function useRestoration(): UseRestorationResult {
     tokenType: TokenType,
     numberOfMedia: number = 4
   ) => {
+    console.log('[RESTORE HOOK] Starting restoration...', {
+      hasClient: !!client,
+      imageDataSize: imageData?.length,
+      width,
+      height,
+      tokenType,
+      numberOfMedia,
+      // SDK has typo: isAuthenicated (missing 't')
+      clientAuthenticated: (client?.account?.currentAccount as any)?.isAuthenicated,
+      clientUsername: client?.account?.currentAccount?.username
+    });
+
     setIsRestoring(true);
     setProgress(0);
     setError(null);
@@ -37,20 +49,28 @@ export function useRestoration(): UseRestorationResult {
     setSelectedUrl(null);
 
     try {
+      console.log('[RESTORE HOOK] Calling restorePhoto service...');
       const resultUrls = await restorePhoto(
         client,
         { imageData, width, height, tokenType, numberOfMedia },
         (progressUpdate) => {
+          console.log('[RESTORE HOOK] Progress update:', progressUpdate);
           if (progressUpdate.progress !== undefined) {
             setProgress(progressUpdate.progress);
           }
         }
       );
 
+      console.log('[RESTORE HOOK] Restoration complete! Got URLs:', resultUrls);
       setRestoredUrls(resultUrls);
       setProgress(1);
     } catch (err: any) {
-      console.error('[RESTORE] Restoration failed:', err);
+      console.error('[RESTORE HOOK] Restoration failed:', {
+        error: err,
+        message: err?.message,
+        code: err?.code,
+        stack: err?.stack
+      });
       
       // Handle specific error types
       if (err.isInsufficientCredits || err.message === 'INSUFFICIENT_CREDITS') {
@@ -60,6 +80,9 @@ export function useRestoration(): UseRestorationResult {
       } else {
         setError(err.message || 'Restoration failed. Please try again.');
       }
+      
+      // Re-throw so callers know the operation failed
+      throw err;
     } finally {
       setIsRestoring(false);
     }
