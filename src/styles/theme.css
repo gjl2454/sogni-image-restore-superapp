@@ -1,29 +1,53 @@
 /* -------------------------
    Sogni Photo Restoration Theme
-   Premium & Elegant Design
+   Friendly, Fun & Professional Design
    ------------------------- */
 
 :root {
-  /* Sogni Brand Colors */
-  --sogni-pink: #ff61d5;
-  --sogni-purple: #7132e8;
-  --sogni-gradient: linear-gradient(135deg, #ff61d5 0%, #7132e8 100%);
-  --sogni-gradient-subtle: linear-gradient(135deg, rgba(255, 97, 213, 0.05) 0%, rgba(113, 50, 232, 0.05) 100%);
+  /* Brand Colors - Friendly & Professional Palette */
+  --color-dark-navy: #0D1821;
+  --color-blue-gray: #344966;
+  --color-light-blue: #B4CDED;
+  --color-cream: #F0F4EF;
+  --color-sage: #BFCC94;
   
-  /* Neutral Colors - Premium Palette */
-  --color-bg: #fafafa;
+  /* RGB values for rgba() usage */
+  --rgb-dark-navy: 13, 24, 33;
+  --rgb-blue-gray: 52, 73, 102;
+  --rgb-light-blue: 180, 205, 237;
+  --rgb-sage: 191, 204, 148;
+  
+  /* Primary Gradient - Blue tones (friendly & professional) */
+  --sogni-gradient: linear-gradient(135deg, #344966 0%, #B4CDED 100%);
+  --sogni-gradient-alt: linear-gradient(135deg, #B4CDED 0%, #BFCC94 100%);
+  --sogni-gradient-subtle: linear-gradient(135deg, rgba(52, 73, 102, 0.08) 0%, rgba(180, 205, 237, 0.08) 100%);
+  
+  /* Legacy color names for compatibility */
+  --sogni-pink: #B4CDED; /* Light blue as primary accent */
+  --sogni-purple: #344966; /* Blue-gray as secondary accent */
+  
+  /* Background Colors */
+  --color-bg: #F0F4EF;
   --color-bg-elevated: #ffffff;
-  --color-text-primary: #1a1a1a;
-  --color-text-secondary: #666666;
-  --color-text-tertiary: #999999;
-  --color-border: #e5e5e5;
-  --color-border-light: #f0f0f0;
+  --color-bg-hover: rgba(244, 248, 243, 0.8);
   
-  /* Shadows - Subtle & Refined */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.08);
-  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.1);
+  /* Text Colors */
+  --color-text-primary: #0D1821;
+  --color-text-secondary: #344966;
+  --color-text-tertiary: #6B7A8F;
+  --color-text-light: #9BA5B3;
+  
+  /* Border Colors */
+  --color-border: rgba(52, 73, 102, 0.15);
+  --color-border-light: rgba(52, 73, 102, 0.08);
+  --color-border-hover: rgba(52, 73, 102, 0.25);
+  
+  /* Shadows - Soft & Friendly */
+  --shadow-sm: 0 1px 3px rgba(13, 24, 33, 0.06);
+  --shadow-md: 0 4px 12px rgba(13, 24, 33, 0.08);
+  --shadow-lg: 0 8px 24px rgba(13, 24, 33, 0.1);
+  --shadow-xl: 0 16px 48px rgba(13, 24, 33, 0.12);
+  --shadow-colored: 0 4px 20px rgba(52, 73, 102, 0.15);
   
   /* Typography */
   --font-primary: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
@@ -100,21 +124,23 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .btn-secondary {
-  background: var(--color-bg-elevated);
-  color: var(--color-text-primary);
-  border: 1px solid var(--color-border);
+  background: var(--color-blue-gray);
+  color: white;
+  border: 1px solid var(--color-blue-gray);
   padding: 0.75rem 2rem;
   border-radius: var(--radius-md);
   font-weight: 500;
   letter-spacing: -0.01em;
   transition: all var(--transition-base);
   cursor: pointer;
+  box-shadow: var(--shadow-sm);
 }
 
 .btn-secondary:hover:not(:disabled) {
-  border-color: var(--color-text-tertiary);
+  background: var(--color-dark-navy);
+  border-color: var(--color-dark-navy);
   transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 4px 16px rgba(var(--rgb-light-blue), 0.4), 0 0 24px rgba(var(--rgb-light-blue), 0.3), var(--shadow-md);
 }
 
 /* Premium Card Styles */
@@ -156,11 +182,11 @@ h1, h2, h3, h4, h5, h6 {
   mask-composite: exclude;
 }
 
-/* Premium Focus States */
+/* Friendly Focus States */
 input:focus,
 textarea:focus,
 button:focus {
-  outline: 2px solid var(--sogni-pink);
+  outline: 2px solid var(--color-light-blue);
   outline-offset: 2px;
 }
 
@@ -180,18 +206,18 @@ button:focus {
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-text-tertiary);
+  background: var(--color-blue-gray);
 }
 
 /* Selection Styling */
 ::selection {
-  background: var(--sogni-pink);
-  color: white;
+  background: var(--color-light-blue);
+  color: var(--color-dark-navy);
 }
 
 ::-moz-selection {
-  background: var(--sogni-pink);
-  color: white;
+  background: var(--color-light-blue);
+  color: var(--color-dark-navy);
 }
 
 /* Loading Animation */

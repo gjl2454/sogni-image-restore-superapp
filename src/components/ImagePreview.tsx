@@ -1,5 +1,6 @@
 import React from 'react';
 import { ResultsCarousel } from './ResultsCarousel';
+import { ResultsGridWithSliders } from './ResultsGridWithSliders';
 
 interface ImagePreviewProps {
   imageUrl: string;
@@ -35,7 +36,7 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
     <div className="h-full flex flex-col gap-4 overflow-hidden">
       {showResultsGrid ? (
         <div className="flex-1 min-h-0 overflow-hidden">
-          <ResultsCarousel
+          <ResultsGridWithSliders
             results={restoredUrls}
             originalImage={originalUrl}
             onSelect={onSelectResult!}
@@ -233,7 +234,7 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
                         style={{
                           width: `${Math.min(Math.round(progress * 100), 100)}%`,
                           background: 'var(--sogni-gradient)',
-                          boxShadow: '0 0 12px rgba(138, 35, 235, 0.6)'
+                          boxShadow: '0 0 12px rgba(52, 73, 102, 0.5)'
                         }}
                       />
                     </div>

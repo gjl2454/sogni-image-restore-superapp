@@ -147,7 +147,7 @@ export const BeforeAfterCompare: React.FC<BeforeAfterCompareProps> = ({
         <div
           className="absolute inset-0"
           style={{
-            background: 'linear-gradient(180deg, rgba(138, 35, 235, 0.25) 0%, rgba(236, 72, 153, 0.25) 100%)',
+            background: 'linear-gradient(180deg, rgba(52, 73, 102, 0.25) 0%, rgba(180, 205, 237, 0.25) 100%)',
             filter: 'blur(12px)',
             width: '24px',
             left: '50%',
@@ -163,8 +163,8 @@ export const BeforeAfterCompare: React.FC<BeforeAfterCompareProps> = ({
           style={{
             background: 'rgba(255, 255, 255, 0.95)',
             boxShadow: isDragging || isHovering
-              ? '0 0 24px rgba(138, 35, 235, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.8)'
-              : '0 0 16px rgba(138, 35, 235, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.7)',
+              ? '0 0 24px rgba(52, 73, 102, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.8)'
+              : '0 0 16px rgba(52, 73, 102, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.7)',
             width: '100%',
             transition: 'box-shadow 0.3s ease'
           }}
@@ -181,8 +181,8 @@ export const BeforeAfterCompare: React.FC<BeforeAfterCompareProps> = ({
             backdropFilter: 'blur(20px)',
             borderRadius: '50%',
             boxShadow: isDragging || isHovering
-              ? '0 6px 24px rgba(138, 35, 235, 0.5), 0 0 0 2px rgba(255, 255, 255, 0.9), 0 0 0 3px rgba(138, 35, 235, 0.15)'
-              : '0 3px 16px rgba(138, 35, 235, 0.3), 0 0 0 1.5px rgba(255, 255, 255, 0.85)',
+              ? '0 6px 24px rgba(52, 73, 102, 0.5), 0 0 0 2px rgba(255, 255, 255, 0.9), 0 0 0 3px rgba(52, 73, 102, 0.15)'
+              : '0 3px 16px rgba(52, 73, 102, 0.3), 0 0 0 1.5px rgba(255, 255, 255, 0.85)',
             cursor: isDragging ? 'grabbing' : 'grab',
             pointerEvents: 'auto',
             transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'
@@ -201,8 +201,8 @@ export const BeforeAfterCompare: React.FC<BeforeAfterCompareProps> = ({
             <svg width="12" height="16" viewBox="0 0 8 12" fill="none">
               <defs>
                 <linearGradient id={`compare-arrow-left-${sliderPosition}`} x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="rgb(138, 35, 235)" />
-                  <stop offset="100%" stopColor="rgb(236, 72, 153)" />
+                  <stop offset="0%" stopColor="rgb(52, 73, 102)" />
+                  <stop offset="100%" stopColor="rgb(180, 205, 237)" />
                 </linearGradient>
               </defs>
               <path 
@@ -216,8 +216,8 @@ export const BeforeAfterCompare: React.FC<BeforeAfterCompareProps> = ({
             <svg width="12" height="16" viewBox="0 0 8 12" fill="none">
               <defs>
                 <linearGradient id={`compare-arrow-right-${sliderPosition}`} x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="rgb(138, 35, 235)" />
-                  <stop offset="100%" stopColor="rgb(236, 72, 153)" />
+                  <stop offset="0%" stopColor="rgb(52, 73, 102)" />
+                  <stop offset="100%" stopColor="rgb(180, 205, 237)" />
                 </linearGradient>
               </defs>
               <path 
@@ -232,29 +232,39 @@ export const BeforeAfterCompare: React.FC<BeforeAfterCompareProps> = ({
         </div>
       </div>
 
-      {/* Clean Labels */}
+      {/* Clean Labels - Centered on Slider */}
       <div 
-        className="absolute top-16 left-4 px-3 py-1.5 rounded-full text-xs font-semibold pointer-events-none" 
+        className="absolute px-3 py-1.5 rounded-full text-xs font-semibold pointer-events-none" 
         style={{
-          background: 'rgba(138, 35, 235, 0.9)',
+          left: `${sliderPosition}%`,
+          top: '2rem',
+          transform: 'translateX(-50%)',
+          background: 'rgba(52, 73, 102, 0.9)',
           backdropFilter: 'blur(10px)',
           color: 'white',
           letterSpacing: '0.05em',
-          boxShadow: '0 2px 12px rgba(138, 35, 235, 0.4)',
-          zIndex: 30
+          boxShadow: '0 2px 12px rgba(52, 73, 102, 0.4)',
+          zIndex: 30,
+          transition: (isDragging || isHovering) ? 'none' : 'left 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          whiteSpace: 'nowrap'
         }}
       >
         BEFORE
       </div>
       <div 
-        className="absolute top-4 right-4 px-3 py-1.5 rounded-full text-xs font-semibold pointer-events-none" 
+        className="absolute px-3 py-1.5 rounded-full text-xs font-semibold pointer-events-none" 
         style={{
-          background: 'rgba(236, 72, 153, 0.9)',
+          left: `${sliderPosition}%`,
+          bottom: '2rem',
+          transform: 'translateX(-50%)',
+          background: 'rgba(180, 205, 237, 0.9)',
           backdropFilter: 'blur(10px)',
           color: 'white',
           letterSpacing: '0.05em',
-          boxShadow: '0 2px 12px rgba(236, 72, 153, 0.4)',
-          zIndex: 30
+          boxShadow: '0 2px 12px rgba(180, 205, 237, 0.4)',
+          zIndex: 30,
+          transition: (isDragging || isHovering) ? 'none' : 'left 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          whiteSpace: 'nowrap'
         }}
       >
         AFTER

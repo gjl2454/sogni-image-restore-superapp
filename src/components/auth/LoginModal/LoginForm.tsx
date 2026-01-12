@@ -69,7 +69,8 @@ function LoginForm({ onSignup, onClose }: Props) {
 
       console.log('✅ Login successful!', {
         username: payload.username,
-        clientAuthenticated: client.account.currentAccount?.isAuthenicated
+        clientAuthenticated: client.account.currentAccount?.isAuthenticated,
+        currentBalance: client.account.currentAccount?.balance
       });
 
       if (payload.remember) {
@@ -78,10 +79,19 @@ function LoginForm({ onSignup, onClose }: Props) {
         localStorage.removeItem('sogni-persist');
       }
 
+      // Set authenticated state first
       setAuthenticatedState(
         payload.username,
         client.account.currentAccount?.email
       );
+
+      // Force a balance refresh by triggering the 'updated' event on currentAccount
+      // This ensures the useEntity hook picks up the balance
+      console.log('💰 Triggering balance update after login...');
+      const currentAccount = client.account.currentAccount;
+      if (currentAccount && typeof (currentAccount as any).emit === 'function') {
+        (currentAccount as any).emit('updated');
+      }
 
       onClose();
     },

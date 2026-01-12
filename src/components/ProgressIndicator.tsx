@@ -29,7 +29,7 @@ export const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({ progress, 
             width: `${percentage}%`,
             background: 'var(--sogni-gradient)',
             transition: 'width 300ms cubic-bezier(0.4, 0, 0.2, 1)',
-            boxShadow: '0 0 12px rgba(255, 97, 213, 0.4)'
+            boxShadow: '0 0 12px rgba(var(--rgb-light-blue), 0.5)'
           }}
         />
       </div>

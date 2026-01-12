@@ -37,7 +37,7 @@ function Step3({ step1, step2, onReturn, onContinue }: Props) {
     console.log('✅ Account created successfully!', {
       username,
       email,
-      clientAuthenticated: client.account.currentAccount?.isAuthenicated
+      clientAuthenticated: client.account.currentAccount?.isAuthenticated
     });
 
     if (remember) {

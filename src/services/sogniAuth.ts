@@ -101,6 +101,7 @@ class SogniAuthManager implements SogniAuthService {
 
       if (this.sogniClient) {
         const currentAccount = this.sogniClient.account.currentAccount;
+        // SDK has typo: isAuthenicated (missing 't')
         const isAlreadyAuthenticated = currentAccount?.isAuthenicated;
         
         if (isAlreadyAuthenticated) {
@@ -115,6 +116,12 @@ class SogniAuthManager implements SogniAuthService {
             error: null,
             sessionTransferred: false
           });
+
+          // Trigger balance update to ensure useEntity picks up the balance
+          console.log('💰 Triggering balance update for existing client...');
+          if (currentAccount && typeof (currentAccount as any).emit === 'function') {
+            (currentAccount as any).emit('updated');
+          }
 
           tabSync.notifyNewAuthenticatedTab();
           return true;
@@ -187,6 +194,13 @@ class SogniAuthManager implements SogniAuthService {
           error: null,
           sessionTransferred: false
         });
+
+        // Trigger balance update to ensure useEntity picks up the balance
+        console.log('💰 Triggering balance update after session restore...');
+        const currentAccount = this.sogniClient?.account?.currentAccount;
+        if (currentAccount && typeof (currentAccount as any).emit === 'function') {
+          (currentAccount as any).emit('updated');
+        }
 
         tabSync.notifyNewAuthenticatedTab();
         console.log('✅ Existing Sogni session found and restored');

@@ -23,7 +23,7 @@ interface RestorationProgress {
 }
 
 /**
- * Restore a damaged photo using Flux Kontext model
+ * Restore a damaged photo using Qwen Image Edit 2511 Lightning model
  * Returns 4 variations for user to choose from
  */
 export async function restorePhoto(
@@ -88,28 +88,29 @@ export async function restorePhoto(
     });
   }
 
-  // Create project with Flux Kontext model
+  // Create project with Qwen Image Edit 2511 Lightning model
   const projectConfig: any = {
     type: 'image',
     testnet: false,
     tokenType: tokenType,
-    modelId: 'flux1-dev-kontext_fp8_scaled',
+    modelId: 'qwen_image_edit_2511_fp8_lightning',
     positivePrompt: prompt,
     negativePrompt: '',
     stylePrompt: '',
     sizePreset: 'custom',
     width,
     height,
-    steps: 24,
-    guidance: 5.5,
+    steps: 5,
+    guidance: 1,
     numberOfMedia, // Generate specified number of variations for user to choose from
     outputFormat,
-    sensitiveContentFilter: false, // Kontext model is not NSFW-aware
-    contextImages: [imageData], // Kontext uses contextImages array
-    sourceType: 'enhancement-kontext'
+    sensitiveContentFilter: false, // Qwen Image Edit is not NSFW-aware
+    contextImages: [imageData], // Qwen Image Edit uses contextImages array
+    sourceType: 'enhancement-qwen-image-edit'
+    // Note: sampler and scheduler omitted - server provides defaults for Lightning model
   };
 
-  console.log('[RESTORE SERVICE] Creating restoration project with Flux Kontext', {
+  console.log('[RESTORE SERVICE] Creating restoration project with Qwen Image Edit 2511 Lightning', {
     config: {
       ...projectConfig,
       contextImages: `[Uint8Array(${imageData.length} bytes)]`

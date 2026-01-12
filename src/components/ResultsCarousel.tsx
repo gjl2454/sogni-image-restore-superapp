@@ -122,18 +122,17 @@ export const ResultsCarousel: React.FC<ResultsCarouselProps> = ({
 
       {/* Main image display */}
       <div 
-        className="flex-1 min-h-0 relative overflow-hidden flex items-center" 
+        className="flex-1 min-h-0 relative overflow-auto image-preview-container" 
         style={{
           background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
           borderRadius: 'var(--radius-lg)',
-          border: '1px solid rgba(138, 35, 235, 0.15)',
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(138, 35, 235, 0.1)',
-          justifyContent: 'center',
+          border: '1px solid rgba(52, 73, 102, 0.15)',
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(52, 73, 102, 0.1)',
+          padding: '1rem',
           touchAction: 'pan-y pinch-zoom',
           opacity: isRevealed ? 1 : 0,
           transform: isRevealed ? 'scale(1)' : 'scale(0.95)',
-          transition: 'opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1), transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
-          position: 'relative'
+          transition: 'opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1), transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)'
         }}
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
@@ -143,7 +142,7 @@ export const ResultsCarousel: React.FC<ResultsCarouselProps> = ({
         <div 
           className="absolute top-5 left-5 px-4 py-2 rounded-full text-sm font-semibold"
           style={{
-            background: 'linear-gradient(135deg, rgba(138, 35, 235, 0.95) 0%, rgba(236, 72, 153, 0.95) 100%)',
+            background: 'linear-gradient(135deg, rgba(52, 73, 102, 0.95) 0%, rgba(180, 205, 237, 0.95) 100%)',
             color: 'white',
             backdropFilter: 'blur(12px)',
             zIndex: 40,
@@ -162,22 +161,22 @@ export const ResultsCarousel: React.FC<ResultsCarouselProps> = ({
             style={{
               background: 'rgba(255, 255, 255, 0.95)',
               backdropFilter: 'blur(16px)',
-              border: '1px solid rgba(138, 35, 235, 0.2)',
+              border: '1px solid rgba(52, 73, 102, 0.2)',
               color: 'var(--sogni-purple)',
               cursor: 'pointer',
               zIndex: 40,
-              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(138, 35, 235, 0.1)'
+              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(52, 73, 102, 0.1)'
             }}
             aria-label="Previous result"
             onMouseEnter={(e) => {
               e.currentTarget.style.background = 'var(--sogni-gradient)';
               e.currentTarget.style.color = 'white';
-              e.currentTarget.style.boxShadow = '0 6px 24px rgba(138, 35, 235, 0.4)';
+              e.currentTarget.style.boxShadow = '0 6px 24px rgba(52, 73, 102, 0.4)';
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.background = 'rgba(255, 255, 255, 0.95)';
               e.currentTarget.style.color = 'var(--sogni-purple)';
-              e.currentTarget.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(138, 35, 235, 0.1)';
+              e.currentTarget.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(52, 73, 102, 0.1)';
             }}
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -189,9 +188,10 @@ export const ResultsCarousel: React.FC<ResultsCarouselProps> = ({
         {/* Image or Comparison - wrapped to capture hover only on image */}
         {showComparison && originalImage ? (
           <div 
-            className="absolute inset-0 flex items-center"
+            className="flex items-center justify-center"
             style={{ 
-              justifyContent: 'center',
+              width: '100%',
+              height: '100%',
               pointerEvents: 'auto'
             }}
           >
@@ -204,7 +204,6 @@ export const ResultsCarousel: React.FC<ResultsCarouselProps> = ({
           <img
             src={currentResult}
             alt={`Result ${currentIndex + 1}`}
-            className="max-w-full max-h-full object-contain"
             style={{
               maxWidth: '100%',
               maxHeight: '100%',
@@ -246,22 +245,22 @@ export const ResultsCarousel: React.FC<ResultsCarouselProps> = ({
             style={{
               background: 'rgba(255, 255, 255, 0.95)',
               backdropFilter: 'blur(16px)',
-              border: '1px solid rgba(138, 35, 235, 0.2)',
+              border: '1px solid rgba(52, 73, 102, 0.2)',
               color: 'var(--sogni-purple)',
               cursor: 'pointer',
               zIndex: 40,
-              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(138, 35, 235, 0.1)'
+              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(52, 73, 102, 0.1)'
             }}
             aria-label="Next result"
             onMouseEnter={(e) => {
               e.currentTarget.style.background = 'var(--sogni-gradient)';
               e.currentTarget.style.color = 'white';
-              e.currentTarget.style.boxShadow = '0 6px 24px rgba(138, 35, 235, 0.4)';
+              e.currentTarget.style.boxShadow = '0 6px 24px rgba(52, 73, 102, 0.4)';
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.background = 'rgba(255, 255, 255, 0.95)';
               e.currentTarget.style.color = 'var(--sogni-purple)';
-              e.currentTarget.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(138, 35, 235, 0.1)';
+              e.currentTarget.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(52, 73, 102, 0.1)';
             }}
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -284,13 +283,13 @@ export const ResultsCarousel: React.FC<ResultsCarouselProps> = ({
                 height: '10px',
                 borderRadius: '10px',
                 background: currentIndex === index 
-                  ? 'linear-gradient(135deg, rgba(138, 35, 235, 1) 0%, rgba(236, 72, 153, 1) 100%)' 
-                  : 'rgba(138, 35, 235, 0.25)',
+                  ? 'linear-gradient(135deg, rgba(52, 73, 102, 1) 0%, rgba(180, 205, 237, 1) 100%)' 
+                  : 'rgba(52, 73, 102, 0.25)',
                 border: currentIndex === index 
                   ? '2px solid rgba(255, 255, 255, 0.3)' 
                   : '2px solid transparent',
                 boxShadow: currentIndex === index 
-                  ? '0 2px 12px rgba(138, 35, 235, 0.4), 0 0 0 2px rgba(138, 35, 235, 0.1)' 
+                  ? '0 2px 12px rgba(52, 73, 102, 0.4), 0 0 0 2px rgba(52, 73, 102, 0.1)' 
                   : 'none',
                 cursor: 'pointer',
                 opacity: currentIndex === index ? 1 : 0.6,
@@ -323,7 +322,7 @@ export const ResultsCarousel: React.FC<ResultsCarouselProps> = ({
             padding: '0.875rem 1.5rem',
             fontSize: '0.9375rem',
             fontWeight: 600,
-            boxShadow: '0 4px 16px rgba(138, 35, 235, 0.3)',
+            boxShadow: '0 4px 16px rgba(52, 73, 102, 0.3)',
             letterSpacing: '0.01em'
           }}
         >

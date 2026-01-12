@@ -37,7 +37,7 @@ export const BeforeAfterGallery: React.FC<BeforeAfterGalleryProps> = ({
   return (
     <div className="w-full py-8 lg:py-12">
       <div className="text-center mb-10 lg:mb-12">
-        <h3 className="text-2xl lg:text-3xl font-bold mb-3" style={{
+        <h3 className="text-xl lg:text-2xl font-bold mb-3" style={{
           background: 'var(--sogni-gradient)',
           WebkitBackgroundClip: 'text',
           WebkitTextFillColor: 'transparent',
@@ -96,11 +96,11 @@ export const BeforeAfterGallery: React.FC<BeforeAfterGalleryProps> = ({
                 <div 
                   className="absolute top-4 left-4 px-3 py-1.5 rounded-full text-xs font-semibold"
                   style={{
-                    background: 'rgba(138, 35, 235, 0.9)',
+                    background: 'rgba(52, 73, 102, 0.9)',
                     backdropFilter: 'blur(8px)',
                     color: 'white',
                     letterSpacing: '0.05em',
-                    boxShadow: '0 2px 12px rgba(138, 35, 235, 0.4)'
+                    boxShadow: '0 2px 12px rgba(52, 73, 102, 0.4)'
                   }}
                 >
                   BEFORE
@@ -122,7 +122,7 @@ export const BeforeAfterGallery: React.FC<BeforeAfterGalleryProps> = ({
                 style={{
                   transform: 'translateX(-50%)',
                   background: 'linear-gradient(180deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.7) 50%, rgba(255,255,255,0.9) 100%)',
-                  boxShadow: '0 0 20px rgba(138, 35, 235, 0.5), inset 0 0 10px rgba(255,255,255,0.5)',
+                  boxShadow: '0 0 20px rgba(52, 73, 102, 0.5), inset 0 0 10px rgba(255,255,255,0.5)',
                   transition: 'all 0.3s ease'
                 }}
               />
@@ -147,11 +147,11 @@ export const BeforeAfterGallery: React.FC<BeforeAfterGalleryProps> = ({
                 <div 
                   className="absolute top-4 right-4 px-3 py-1.5 rounded-full text-xs font-semibold"
                   style={{
-                    background: 'rgba(236, 72, 153, 0.9)',
+                    background: 'rgba(180, 205, 237, 0.9)',
                     backdropFilter: 'blur(8px)',
                     color: 'white',
                     letterSpacing: '0.05em',
-                    boxShadow: '0 2px 12px rgba(236, 72, 153, 0.4)'
+                    boxShadow: '0 2px 12px rgba(180, 205, 237, 0.4)'
                   }}
                 >
                   AFTER
@@ -173,7 +173,7 @@ export const BeforeAfterGallery: React.FC<BeforeAfterGalleryProps> = ({
               className="absolute inset-0 pointer-events-none"
               style={{
                 background: hoveredIndex === index 
-                  ? 'radial-gradient(circle at center, transparent 40%, rgba(138, 35, 235, 0.05) 100%)'
+                  ? 'radial-gradient(circle at center, transparent 40%, rgba(52, 73, 102, 0.05) 100%)'
                   : 'transparent',
                 transition: 'background 0.5s ease',
                 borderRadius: 'var(--radius-lg)'
@@ -184,9 +184,9 @@ export const BeforeAfterGallery: React.FC<BeforeAfterGalleryProps> = ({
             <div 
               className="absolute inset-0 rounded-lg pointer-events-none"
               style={{
-                border: '2px solid rgba(138, 35, 235, 0.15)',
+                border: '2px solid rgba(52, 73, 102, 0.15)',
                 boxShadow: hoveredIndex === index
-                  ? '0 12px 48px rgba(138, 35, 235, 0.2), inset 0 0 0 1px rgba(255, 255, 255, 0.1)'
+                  ? '0 12px 48px rgba(52, 73, 102, 0.2), inset 0 0 0 1px rgba(255, 255, 255, 0.1)'
                   : '0 4px 24px rgba(0, 0, 0, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.05)',
                 transition: 'all 0.5s ease',
                 borderRadius: 'var(--radius-lg)'

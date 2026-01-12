@@ -108,10 +108,11 @@ sogni-image-restore-superapp/
 
 ## Restoration Model
 
-Uses **Flux Kontext** (`flux1-dev-kontext_fp8_scaled`) with:
+Uses **Qwen Image Edit 2511 Lightning** (`qwen_image_edit_2511_fp8_lightning`) with:
 - Restoration-focused prompts
-- 24 steps, 5.5 guidance
-- `contextImages` array (Kontext-specific)
+- 5 steps, 1.0 guidance
+- `contextImages` array (Qwen Image Edit-specific)
+- Fast inference with Lightning model
 
 ## License
 

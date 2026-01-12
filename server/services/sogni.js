@@ -37,7 +37,7 @@ const getSogniUrls = (env) => {
 };
 
 async function getOrCreateGlobalSogniClient() {
-  if (globalSogniClient && globalSogniClient.account.currentAccount.isAuthenicated) {
+  if (globalSogniClient && globalSogniClient.account.currentAccount?.isAuthenticated) {
     return globalSogniClient;
   }
   
@@ -99,27 +99,32 @@ async function getOrCreateGlobalSogniClient() {
 export async function generateRestoration(params) {
   const client = await getOrCreateGlobalSogniClient();
   
-  const isKontextEnhancement = params.selectedModel === 'flux1-dev-kontext_fp8_scaled';
+  const isQwenImageEdit = params.selectedModel === 'qwen_image_edit_2511_fp8_lightning';
   
   const projectOptions = {
     type: 'image',
-    modelId: params.selectedModel || 'flux1-dev-kontext_fp8_scaled',
+    modelId: params.selectedModel || 'qwen_image_edit_2511_fp8_lightning',
     positivePrompt: params.positivePrompt || 'Restore and repair this damaged photograph, remove scratches, tears, stains, and age-related damage, enhance details and colors while preserving the original character',
     sizePreset: 'custom',
     width: params.width,
     height: params.height,
-    steps: params.inferenceSteps || 24,
-    guidance: params.guidance || 5.5,
+    steps: params.inferenceSteps || 5,
+    guidance: params.guidance || 1,
     numberOfMedia: 1,
     numberOfPreviews: 0,
-    scheduler: params.scheduler || 'DPM++ SDE',
-    timeStepSpacing: params.timeStepSpacing || 'Karras',
-    disableNSFWFilter: true, // Kontext model is not NSFW-aware
+    disableNSFWFilter: true, // Qwen Image Edit is not NSFW-aware
     outputFormat: params.outputFormat || 'jpg',
     tokenType: params.tokenType || 'spark',
   };
   
-  if (isKontextEnhancement && params.contextImages && Array.isArray(params.contextImages)) {
+  // For Qwen Image Edit Lightning, don't specify sampler/scheduler - server provides defaults
+  // Only add these for other models if needed
+  if (!isQwenImageEdit && params.scheduler) {
+    projectOptions.scheduler = params.scheduler;
+    projectOptions.timeStepSpacing = params.timeStepSpacing || 'Karras';
+  }
+  
+  if (isQwenImageEdit && params.contextImages && Array.isArray(params.contextImages)) {
     const contextImagesData = params.contextImages.map(img => {
       return img instanceof Uint8Array ? img : new Uint8Array(img);
     });

@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite --host 0.0.0.0 --port 5173 --strictPort",
+    "dev": "npx kill-port 5173 && vite --host 0.0.0.0 --port 5173 --strictPort",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "lint": "eslint \"src/**/*.{ts,tsx}\" --report-unused-disable-directives --max-warnings 0",
@@ -14,7 +14,7 @@
     "prepare": "npm run server:install"
   },
   "dependencies": {
-    "@sogni-ai/sogni-client": "^4.0.0-alpha.27",
+    "@sogni-ai/sogni-client": "^4.0.0-alpha.49",
     "@types/uuid": "^10.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -35,4 +35,3 @@
     "vite": "^6.2.2"
   }
 }
-

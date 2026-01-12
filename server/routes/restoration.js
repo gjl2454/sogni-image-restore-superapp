@@ -42,12 +42,12 @@ router.post('/generate', async (req, res) => {
     console.log(`[RESTORE] Creating restoration project: ${localProjectId}`);
 
     const result = await generateRestoration({
-      selectedModel: selectedModel || 'flux1-dev-kontext_fp8_scaled',
+      selectedModel: selectedModel || 'qwen_image_edit_2511_fp8_lightning',
       positivePrompt: positivePrompt || 'Restore and repair this damaged photograph, remove scratches, tears, stains, and age-related damage, enhance details and colors while preserving the original character',
       width: width || 1024,
       height: height || 1024,
-      guidance: guidance || 5.5,
-      inferenceSteps: inferenceSteps || 24,
+      guidance: guidance || 1,
+      inferenceSteps: inferenceSteps || 5,
       contextImages: contextImages ? [new Uint8Array(contextImages)] : undefined,
       tokenType: tokenType || 'spark',
       outputFormat: outputFormat || 'jpg'

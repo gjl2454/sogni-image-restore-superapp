@@ -43,7 +43,7 @@ body {
 .auth-signin-btn:hover:not(:disabled) {
   opacity: 0.9;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(138, 35, 235, 0.3);
+  box-shadow: 0 4px 12px rgba(var(--rgb-blue-gray), 0.25);
 }
 
 .auth-signin-btn:active:not(:disabled) {
@@ -105,4 +105,3 @@ body {
     transform: translateX(-50%) translateY(-10px);
   }
 }
-

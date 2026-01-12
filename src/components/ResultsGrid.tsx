@@ -50,7 +50,7 @@ export const ResultsGrid: React.FC<ResultsGridProps> = ({
                   ? '3px solid var(--sogni-purple)' 
                   : '2px solid var(--color-border)',
                 boxShadow: isSelected 
-                  ? '0 0 0 2px rgba(138, 35, 235, 0.2)' 
+                  ? '0 0 0 2px rgba(var(--rgb-blue-gray), 0.2)' 
                   : 'var(--shadow-sm)',
                 transform: isSelected ? 'scale(1.02)' : 'scale(1)',
               }}

@@ -73,6 +73,13 @@ export function useWallet(): UseWalletResult {
   // Get the sogni client
   const sogniClient = getSogniClient();
 
+  // Log authentication for debugging
+  useEffect(() => {
+    if (isAuthenticated && authMode !== 'demo') {
+      console.log('💰 User authenticated, balance should be available from SDK');
+    }
+  }, [isAuthenticated, authMode]);
+
   // Use useEntity to subscribe to balance updates via SDK's DataEntity pattern
   // This will automatically update when the SDK receives balance updates from the API
   // The getter function MUST be stable (defined outside) to prevent excessive re-renders

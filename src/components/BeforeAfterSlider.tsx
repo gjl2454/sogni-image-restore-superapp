@@ -94,8 +94,8 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
         cursor: isDragging ? 'grabbing' : 'ew-resize',
         touchAction: 'none',
         borderRadius: 'var(--radius-lg)',
-        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(138, 35, 235, 0.15)',
-        border: '2px solid rgba(138, 35, 235, 0.2)',
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(52, 73, 102, 0.15)',
+        border: '2px solid rgba(52, 73, 102, 0.2)',
         transition: 'all 0.3s ease'
       }}
       onMouseEnter={handleMouseEnter}
@@ -115,10 +115,10 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
         <div 
           className="absolute top-4 right-4 px-4 py-2 text-sm font-semibold"
           style={{
-            background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.95) 0%, rgba(236, 72, 153, 0.9) 100%)',
+            background: 'linear-gradient(135deg, rgba(180, 205, 237, 0.95) 0%, rgba(180, 205, 237, 0.9) 100%)',
             color: 'white',
             borderRadius: 'var(--radius-md)',
-            boxShadow: '0 4px 16px rgba(236, 72, 153, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.2)',
+            boxShadow: '0 4px 16px rgba(180, 205, 237, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.2)',
             backdropFilter: 'blur(12px)',
             letterSpacing: '0.025em'
           }}
@@ -143,10 +143,10 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
         <div 
           className="absolute top-4 left-4 px-4 py-2 text-sm font-semibold"
           style={{
-            background: 'linear-gradient(135deg, rgba(138, 35, 235, 0.95) 0%, rgba(138, 35, 235, 0.9) 100%)',
+            background: 'linear-gradient(135deg, rgba(52, 73, 102, 0.95) 0%, rgba(52, 73, 102, 0.9) 100%)',
             color: 'white',
             borderRadius: 'var(--radius-md)',
-            boxShadow: '0 4px 16px rgba(138, 35, 235, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.2)',
+            boxShadow: '0 4px 16px rgba(52, 73, 102, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.2)',
             backdropFilter: 'blur(12px)',
             letterSpacing: '0.025em'
           }}
@@ -171,7 +171,7 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
         <div
           className="absolute inset-0"
           style={{
-            background: 'linear-gradient(180deg, rgba(138, 35, 235, 0.3) 0%, rgba(236, 72, 153, 0.3) 50%, rgba(138, 35, 235, 0.3) 100%)',
+            background: 'linear-gradient(180deg, rgba(52, 73, 102, 0.3) 0%, rgba(180, 205, 237, 0.3) 50%, rgba(52, 73, 102, 0.3) 100%)',
             filter: 'blur(16px)',
             width: '32px',
             left: '50%',
@@ -187,8 +187,8 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
           style={{
             background: 'rgba(255, 255, 255, 0.98)',
             boxShadow: isDragging || isHovering
-              ? '0 0 28px rgba(138, 35, 235, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.8)'
-              : '0 0 18px rgba(138, 35, 235, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.6)',
+              ? '0 0 28px rgba(52, 73, 102, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.8)'
+              : '0 0 18px rgba(52, 73, 102, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.6)',
             width: '100%',
             transition: 'box-shadow 0.3s ease'
           }}
@@ -216,8 +216,8 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
             className="absolute inset-0 rounded-full"
             style={{
               background: isDragging || isHovering
-                ? 'linear-gradient(135deg, rgba(138, 35, 235, 0.4), rgba(236, 72, 153, 0.4))'
-                : 'linear-gradient(135deg, rgba(138, 35, 235, 0.25), rgba(236, 72, 153, 0.25))',
+                ? 'linear-gradient(135deg, rgba(52, 73, 102, 0.4), rgba(180, 205, 237, 0.4))'
+                : 'linear-gradient(135deg, rgba(52, 73, 102, 0.25), rgba(180, 205, 237, 0.25))',
               filter: 'blur(12px)',
               transform: 'scale(1.2)',
               opacity: isDragging || isHovering ? 0.8 : 0.6,
@@ -231,8 +231,8 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
             className="absolute inset-0 rounded-full"
             style={{
               boxShadow: isDragging || isHovering
-                ? '0 10px 48px rgba(138, 35, 235, 0.5), 0 0 0 2px rgba(255, 255, 255, 0.9), 0 0 0 4px rgba(138, 35, 235, 0.2), inset 0 1px 2px rgba(255, 255, 255, 0.9)'
-                : '0 6px 32px rgba(138, 35, 235, 0.35), 0 0 0 1.5px rgba(255, 255, 255, 0.85), inset 0 1px 2px rgba(255, 255, 255, 0.9)',
+                ? '0 10px 48px rgba(52, 73, 102, 0.5), 0 0 0 2px rgba(255, 255, 255, 0.9), 0 0 0 4px rgba(52, 73, 102, 0.2), inset 0 1px 2px rgba(255, 255, 255, 0.9)'
+                : '0 6px 32px rgba(52, 73, 102, 0.35), 0 0 0 1.5px rgba(255, 255, 255, 0.85), inset 0 1px 2px rgba(255, 255, 255, 0.9)',
               transition: 'box-shadow 0.3s ease',
               borderRadius: '50%'
             }}
@@ -244,8 +244,8 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
             style={{
               padding: '2px',
               background: isDragging || isHovering
-                ? 'linear-gradient(135deg, rgba(138, 35, 235, 0.6), rgba(236, 72, 153, 0.6))'
-                : 'linear-gradient(135deg, rgba(138, 35, 235, 0.4), rgba(236, 72, 153, 0.4))',
+                ? 'linear-gradient(135deg, rgba(52, 73, 102, 0.6), rgba(180, 205, 237, 0.6))'
+                : 'linear-gradient(135deg, rgba(52, 73, 102, 0.4), rgba(180, 205, 237, 0.4))',
               WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
               WebkitMaskComposite: 'xor',
               maskComposite: 'exclude',
@@ -264,8 +264,8 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
             <svg width="16" height="20" viewBox="0 0 8 12" fill="none">
               <defs>
                 <linearGradient id={`arrow-left-${sliderPosition}`} x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="rgb(138, 35, 235)" stopOpacity="0.9" />
-                  <stop offset="100%" stopColor="rgb(236, 72, 153)" stopOpacity="0.9" />
+                  <stop offset="0%" stopColor="rgb(52, 73, 102)" stopOpacity="0.9" />
+                  <stop offset="100%" stopColor="rgb(180, 205, 237)" stopOpacity="0.9" />
                 </linearGradient>
               </defs>
               <path 
@@ -279,8 +279,8 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
             <svg width="16" height="20" viewBox="0 0 8 12" fill="none">
               <defs>
                 <linearGradient id={`arrow-right-${sliderPosition}`} x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="rgb(138, 35, 235)" stopOpacity="0.9" />
-                  <stop offset="100%" stopColor="rgb(236, 72, 153)" stopOpacity="0.9" />
+                  <stop offset="0%" stopColor="rgb(52, 73, 102)" stopOpacity="0.9" />
+                  <stop offset="100%" stopColor="rgb(180, 205, 237)" stopOpacity="0.9" />
                 </linearGradient>
               </defs>
               <path 
