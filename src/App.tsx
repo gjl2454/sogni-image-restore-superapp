@@ -18,7 +18,7 @@ function App() {
   const { isAuthenticated, isLoading: authLoading, getSogniClient } = useSogniAuth();
   const { balances, tokenType } = useWallet();
   const { imageUrl, imageData, width, height, error: uploadError, upload, clear: clearUpload } = useImageUpload();
-  const { isRestoring, progress, error: restoreError, restoredUrls, selectedUrl, restore, selectResult, clearSelection, reset: resetRestore } = useRestoration();
+  const { isRestoring, progress, error: restoreError, restoredUrls, restorationJobs, selectedUrl, etaSeconds, completedCount, totalCount, restore, selectResult, clearSelection, reset: resetRestore } = useRestoration();
   const { isGenerating: isGeneratingVideo, progress: videoProgress, error: videoError, videoUrl, generate: generateVideo, reset: resetVideo } = useVideo();
   
   const [showOutOfCredits, setShowOutOfCredits] = useState(false);
@@ -420,12 +420,16 @@ function App() {
                             imageUrl={imageUrl}
                             originalUrl={originalUrl || undefined}
                             restoredUrls={restoredUrls}
+                            restorationJobs={restorationJobs}
                             selectedUrl={selectedUrl}
                             onRestore={handleRestore}
                             onSelectResult={selectResult}
                             onClearSelection={clearSelection}
                             isRestoring={isRestoring}
                             progress={progress}
+                            etaSeconds={etaSeconds}
+                            completedCount={completedCount}
+                            totalCount={totalCount}
                             onDownload={handleDownload}
                           />
                         </div>

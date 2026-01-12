@@ -3,12 +3,27 @@ import { SogniClient } from '@sogni-ai/sogni-client';
 import { restorePhoto } from '../services/restorationService';
 import { TokenType } from '../types/wallet';
 
+// Individual restoration job state (photobooth pattern)
+interface RestorationJob {
+  id: string;
+  index: number;
+  generating: boolean;
+  progress: number;
+  resultUrl: string | null;
+  error: string | null;
+  etaSeconds?: number;
+}
+
 interface UseRestorationResult {
   isRestoring: boolean;
   progress: number;
   error: string | null;
   restoredUrls: string[];
+  restorationJobs: RestorationJob[]; // Individual job states
   selectedUrl: string | null;
+  etaSeconds: number | undefined;
+  completedCount: number;
+  totalCount: number;
   restore: (client: SogniClient, imageData: Uint8Array, width: number, height: number, tokenType: TokenType, numberOfMedia?: number) => Promise<void>;
   selectResult: (url: string) => void;
   clearSelection: () => void;
@@ -20,7 +35,11 @@ export function useRestoration(): UseRestorationResult {
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [restoredUrls, setRestoredUrls] = useState<string[]>([]);
+  const [restorationJobs, setRestorationJobs] = useState<RestorationJob[]>([]);
   const [selectedUrl, setSelectedUrl] = useState<string | null>(null);
+  const [etaSeconds, setEtaSeconds] = useState<number | undefined>(undefined);
+  const [completedCount, setCompletedCount] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
 
   const restore = useCallback(async (
     client: SogniClient,
@@ -47,6 +66,25 @@ export function useRestoration(): UseRestorationResult {
     setError(null);
     setRestoredUrls([]);
     setSelectedUrl(null);
+    setEtaSeconds(undefined);
+    setCompletedCount(0);
+    setTotalCount(numberOfMedia);
+
+    // PHOTOBOOTH PATTERN: Create placeholder jobs upfront (like photobooth lines 8799-8821)
+    const baseTimestamp = Date.now();
+    const placeholderJobs: RestorationJob[] = [];
+    for (let i = 0; i < numberOfMedia; i++) {
+      placeholderJobs.push({
+        id: `${baseTimestamp}-${i}`,
+        index: i,
+        generating: true,
+        progress: 0,
+        resultUrl: null,
+        error: null
+      });
+    }
+    setRestorationJobs(placeholderJobs);
+    console.log('[RESTORE HOOK] Created placeholder jobs:', placeholderJobs.length);
 
     try {
       console.log('[RESTORE HOOK] Calling restorePhoto service...');
@@ -55,15 +93,74 @@ export function useRestoration(): UseRestorationResult {
         { imageData, width, height, tokenType, numberOfMedia },
         (progressUpdate) => {
           console.log('[RESTORE HOOK] Progress update:', progressUpdate);
-          if (progressUpdate.progress !== undefined) {
+          
+          // Handle progress updates for individual jobs
+          if (progressUpdate.progress !== undefined && progressUpdate.jobId) {
             setProgress(progressUpdate.progress);
+            
+            // Update individual job progress
+            setRestorationJobs(prev => prev.map(job => 
+              job.id === progressUpdate.jobId || job.index === (progressUpdate.completedCount || 0)
+                ? { ...job, progress: progressUpdate.progress || 0 }
+                : job
+            ));
+          }
+          
+          // Handle ETA updates
+          if (progressUpdate.etaSeconds !== undefined) {
+            setEtaSeconds(progressUpdate.etaSeconds);
+          }
+          
+          // Handle individual job completions - CRITICAL: Update specific job
+          if (progressUpdate.type === 'completed' && progressUpdate.resultUrl) {
+            console.log('[RESTORE HOOK] Job completed!', {
+              jobId: progressUpdate.jobId,
+              resultUrl: progressUpdate.resultUrl,
+              completedCount: progressUpdate.completedCount
+            });
+            
+            // Update the specific job that completed
+            setRestorationJobs(prev => {
+              const jobIndex = (progressUpdate.completedCount || 1) - 1;
+              return prev.map((job, idx) => 
+                idx === jobIndex
+                  ? { ...job, generating: false, progress: 1, resultUrl: progressUpdate.resultUrl! }
+                  : job
+              );
+            });
+            
+            // Also update restoredUrls array
+            setRestoredUrls(prev => {
+              if (prev.includes(progressUpdate.resultUrl!)) {
+                return prev;
+              }
+              return [...prev, progressUpdate.resultUrl!];
+            });
+            
+            setCompletedCount(progressUpdate.completedCount || 0);
+          }
+          
+          // Update counts
+          if (progressUpdate.completedCount !== undefined) {
+            setCompletedCount(progressUpdate.completedCount);
+          }
+          if (progressUpdate.totalCount !== undefined) {
+            setTotalCount(progressUpdate.totalCount);
           }
         }
       );
 
       console.log('[RESTORE HOOK] Restoration complete! Got URLs:', resultUrls);
+      // Ensure all jobs are marked complete
+      setRestorationJobs(prev => prev.map((job, idx) => ({
+        ...job,
+        generating: false,
+        progress: 1,
+        resultUrl: resultUrls[idx] || job.resultUrl
+      })));
       setRestoredUrls(resultUrls);
       setProgress(1);
+      setEtaSeconds(0);
     } catch (err: any) {
       console.error('[RESTORE HOOK] Restoration failed:', {
         error: err,
@@ -101,7 +198,11 @@ export function useRestoration(): UseRestorationResult {
     setProgress(0);
     setError(null);
     setRestoredUrls([]);
+    setRestorationJobs([]);
     setSelectedUrl(null);
+    setEtaSeconds(undefined);
+    setCompletedCount(0);
+    setTotalCount(0);
   }, []);
 
   return {
@@ -109,7 +210,11 @@ export function useRestoration(): UseRestorationResult {
     progress,
     error,
     restoredUrls,
+    restorationJobs,
     selectedUrl,
+    etaSeconds,
+    completedCount,
+    totalCount,
     restore,
     selectResult,
     clearSelection,

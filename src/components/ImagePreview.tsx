@@ -12,6 +12,9 @@ interface ImagePreviewProps {
   onClearSelection?: () => void;
   isRestoring?: boolean;
   progress?: number;
+  etaSeconds?: number;
+  completedCount?: number;
+  totalCount?: number;
   onDownload?: (url: string) => void;
 }
 
@@ -25,6 +28,9 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
   onClearSelection,
   isRestoring = false,
   progress = 0,
+  etaSeconds,
+  completedCount = 0,
+  totalCount = 0,
   onDownload
 }) => {
   const hasResults = restoredUrls.length > 0;
@@ -34,6 +40,31 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
 
   return (
     <div className="h-full flex flex-col gap-4 overflow-hidden">
+      {/* Show progress indicator for ongoing restoration ABOVE the results */}
+      {isRestoring && hasResults && (
+        <div className="flex-shrink-0 px-2 py-2 rounded-lg" style={{
+          background: 'linear-gradient(135deg, rgba(180, 205, 237, 0.1), rgba(194, 148, 255, 0.1))',
+          border: '1px solid rgba(180, 205, 237, 0.2)'
+        }}>
+          <div className="flex items-center justify-between text-sm" style={{ color: 'var(--color-text-primary)' }}>
+            <span className="font-medium">
+              {completedCount}/{totalCount} restored
+            </span>
+            <span className="gradient-accent font-semibold">
+              {etaSeconds !== undefined && etaSeconds > 0 
+                ? (() => {
+                    if (etaSeconds < 60) return `${Math.ceil(etaSeconds)}s remaining`;
+                    const minutes = Math.floor(etaSeconds / 60);
+                    const remainingSeconds = Math.ceil(etaSeconds % 60);
+                    return remainingSeconds > 0 ? `${minutes}m ${remainingSeconds}s remaining` : `${minutes}m remaining`;
+                  })()
+                : 'Processing...'
+              }
+            </span>
+          </div>
+        </div>
+      )}
+      
       {showResultsGrid ? (
         <div className="flex-1 min-h-0 overflow-hidden">
           <ResultsGridWithSliders
@@ -216,12 +247,20 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
                       </div>
                     </div>
                     
-                    {/* Progress percentage */}
+                    {/* Progress percentage or ETA */}
                     <p className="text-center text-2xl font-bold text-white mb-2" style={{ 
                       letterSpacing: '-0.02em',
                       textShadow: '0 2px 8px rgba(0,0,0,0.4)'
                     }}>
-                      {Math.min(Math.round(progress * 100), 100)}%
+                      {etaSeconds !== undefined && etaSeconds > 0 
+                        ? (() => {
+                            if (etaSeconds < 60) return `${Math.ceil(etaSeconds)}s`;
+                            const minutes = Math.floor(etaSeconds / 60);
+                            const remainingSeconds = Math.ceil(etaSeconds % 60);
+                            return remainingSeconds > 0 ? `${minutes}m ${remainingSeconds}s` : `${minutes}m`;
+                          })()
+                        : `${Math.min(Math.round(progress * 100), 100)}%`
+                      }
                     </p>
                     
                     {/* Progress bar */}
@@ -247,7 +286,10 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
                       fontWeight: 600,
                       textShadow: '0 1px 2px rgba(0,0,0,0.4)'
                     }}>
-                      Restoring your photo...
+                      {completedCount > 0 && totalCount > 0
+                        ? `Restoring... (${completedCount}/${totalCount} complete)`
+                        : 'Restoring your photo...'
+                      }
                     </p>
                   </div>
                 </>

@@ -20,6 +20,9 @@ interface RestorationProgress {
   jobId?: string;
   resultUrl?: string;
   error?: any;
+  etaSeconds?: number; // Time remaining in seconds from jobETA event
+  completedCount?: number; // Number of images completed so far
+  totalCount?: number; // Total number of images expected
 }
 
 /**
@@ -168,6 +171,7 @@ export async function restorePhoto(
     let lastEventTime = Date.now();
     let eventCount = 0;
     const jobIdSet = new Set<string>(); // Track job IDs we've seen
+    let lastETA: number | undefined = undefined; // Track last ETA received
 
     console.log('[RESTORE SERVICE] Setting up event listeners (following photobooth pattern)...');
 
@@ -203,16 +207,64 @@ export async function restorePhoto(
         jobIdSet.add(event.jobId);
       }
       
-      // Handle progress events
+      // Handle progress events - CRITICAL: Pass jobId so UI can update specific placeholder
       if (event.type === 'progress' && event.step && event.stepCount) {
         const normalizedProgress = event.step / event.stepCount;
-        console.log(`[RESTORE SERVICE] Progress: ${(normalizedProgress * 100).toFixed(1)}%`);
+        console.log(`[RESTORE SERVICE] Progress for job ${event.jobId}: ${(normalizedProgress * 100).toFixed(1)}%`);
         if (onProgress) {
           onProgress({
             type: 'progress',
-            jobId: event.jobId,
-            progress: normalizedProgress
+            jobId: event.jobId, // CRITICAL: jobId tracks which placeholder to update
+            progress: normalizedProgress,
+            etaSeconds: lastETA,
+            completedCount: resultUrls.length,
+            totalCount: expectedResults
           });
+        }
+      }
+      
+      // Handle jobETA events - shows estimated time remaining
+      if (event.type === 'jobETA' && event.etaSeconds !== undefined) {
+        lastETA = event.etaSeconds;
+        console.log(`[RESTORE SERVICE] Job ETA: ${event.etaSeconds}s remaining`);
+        if (onProgress) {
+          onProgress({
+            type: 'jobETA',
+            jobId: event.jobId,
+            etaSeconds: event.etaSeconds,
+            completedCount: resultUrls.length,
+            totalCount: expectedResults
+          });
+        }
+      }
+      
+      // Handle individual job completion - send result immediately
+      if (event.type === 'completed' && event.resultUrl) {
+        console.log(`[RESTORE SERVICE] Job ${event.jobId} completed! URL: ${event.resultUrl}`);
+        resultUrls.push(event.resultUrl);
+        
+        // Immediately notify about the new result
+        if (onProgress) {
+          onProgress({
+            type: 'completed',
+            jobId: event.jobId,
+            resultUrl: event.resultUrl,
+            completedCount: resultUrls.length,
+            totalCount: expectedResults
+          });
+        }
+        
+        // Check if all jobs are complete
+        if (resultUrls.length >= expectedResults && !resolved) {
+          resolved = true;
+          if (timeoutId) clearTimeout(timeoutId);
+          if (noEventTimeoutId) clearTimeout(noEventTimeoutId);
+          // Clean up global listener
+          if (projectsApi && typeof projectsApi.off === 'function') {
+            projectsApi.off('job', globalJobHandler);
+          }
+          console.log('[RESTORE SERVICE] ✅ All results collected via global handler, resolving!');
+          resolve(resultUrls);
         }
       }
     };
@@ -247,21 +299,38 @@ export async function restorePhoto(
     project.on('progress', progressHandler);
     console.log('[RESTORE SERVICE] ✓ Registered project "progress" event listener');
 
-    // Listen to jobCompleted event - collect all results
+    // Listen to jobCompleted event - CRITICAL: This is the primary way to get individual results
+    // Photobooth pattern: project.on('jobCompleted') fires for each job as it completes
     const jobCompletedHandler = (job: any) => {
       eventCount++;
       lastEventTime = Date.now();
       console.log(`[RESTORE SERVICE] Job completed event #${eventCount}:`, {
         job,
         hasResultUrl: !!job?.resultUrl,
-        resultUrl: job?.resultUrl
+        resultUrl: job?.resultUrl,
+        jobId: job.id
       });
       
+      // CRITICAL: Immediately process each completed job as it arrives (photobooth pattern)
       if (job.resultUrl && !resolved) {
-        resultUrls.push(job.resultUrl);
-        console.log(`[RESTORE SERVICE] ✓ Collected ${resultUrls.length}/${expectedResults} results`);
+        // Check if we already have this URL to avoid duplicates
+        if (!resultUrls.includes(job.resultUrl)) {
+          resultUrls.push(job.resultUrl);
+          console.log(`[RESTORE SERVICE] ✓ Result ${resultUrls.length}/${expectedResults} completed`);
+          
+          // IMMEDIATELY notify UI about the new result (key to showing images as they complete)
+          if (onProgress) {
+            onProgress({
+              type: 'completed',
+              jobId: job.id,
+              resultUrl: job.resultUrl,
+              completedCount: resultUrls.length,
+              totalCount: expectedResults
+            });
+          }
+        }
         
-        // Once we have all expected results, resolve
+        // Once we have all expected results, resolve the promise
         if (resultUrls.length >= expectedResults) {
           resolved = true;
           if (timeoutId) clearTimeout(timeoutId);
@@ -270,14 +339,14 @@ export async function restorePhoto(
           if (projectsApi && typeof projectsApi.off === 'function') {
             projectsApi.off('job', globalJobHandler);
           }
-          console.log('[RESTORE SERVICE] ✅ All results collected, resolving!');
+          console.log('[RESTORE SERVICE] ✅ All results collected via jobCompleted, resolving!');
           resolve(resultUrls);
         }
       }
     };
     
     project.on('jobCompleted', jobCompletedHandler);
-    console.log('[RESTORE SERVICE] ✓ Registered "jobCompleted" event listener');
+    console.log('[RESTORE SERVICE] ✓ Registered "jobCompleted" event listener (PRIMARY completion handler)');
 
     // Listen to jobFailed event
     const jobFailedHandler = (job: any) => {
