@@ -18,6 +18,7 @@ interface RestorationProgress {
   type: string;
   progress?: number;
   jobId?: string;
+  jobIndex?: number; // CRITICAL: Index in the placeholder array (photobooth pattern)
   resultUrl?: string;
   error?: any;
   etaSeconds?: number; // Time remaining in seconds from jobETA event
@@ -172,8 +173,17 @@ export async function restorePhoto(
     let eventCount = 0;
     const jobIdSet = new Set<string>(); // Track job IDs we've seen
     let lastETA: number | undefined = undefined; // Track last ETA received
+    const jobMap = new Map<string, number>(); // CRITICAL: Map SDK job IDs to indices (photobooth pattern)
 
     console.log('[RESTORE SERVICE] Setting up event listeners (following photobooth pattern)...');
+
+    // PHOTOBOOTH PATTERN: Map existing jobs if available (line 5522-5525)
+    if (project.jobs && project.jobs.length > 0) {
+      project.jobs.forEach((job: any, index: number) => {
+        jobMap.set(job.id, index);
+        console.log(`[RESTORE SERVICE] Mapped existing job ${job.id} to index ${index}`);
+      });
+    }
 
     // Track if we receive ANY events within 10 seconds
     noEventTimeoutId = setTimeout(() => {
@@ -186,6 +196,15 @@ export async function restorePhoto(
         });
       }
     }, 10000);
+
+    // PHOTOBOOTH PATTERN: Listen to jobStarted to map dynamically created jobs (line 5529-5535)
+    project.on('jobStarted', (job: any) => {
+      if (!jobMap.has(job.id)) {
+        const nextIndex = jobMap.size;
+        jobMap.set(job.id, nextIndex);
+        console.log(`[RESTORE SERVICE] Mapped new job ${job.id} to index ${nextIndex}`);
+      }
+    });
 
     // *** KEY FIX: Listen to GLOBAL job events from sogniClient.projects ***
     // This is what the photobooth does in FrontendSogniClientAdapter
@@ -207,14 +226,22 @@ export async function restorePhoto(
         jobIdSet.add(event.jobId);
       }
       
-      // Handle progress events - CRITICAL: Pass jobId so UI can update specific placeholder
+      // Handle progress events - CRITICAL: Use jobMap to find correct index (photobooth pattern line 5549)
       if (event.type === 'progress' && event.step && event.stepCount) {
         const normalizedProgress = event.step / event.stepCount;
-        console.log(`[RESTORE SERVICE] Progress for job ${event.jobId}: ${(normalizedProgress * 100).toFixed(1)}%`);
+        const jobIndex = jobMap.get(event.jobId);
+        
+        if (jobIndex === undefined) {
+          console.warn(`[RESTORE SERVICE] Progress for unknown job ${event.jobId}, skipping`);
+          return;
+        }
+        
+        console.log(`[RESTORE SERVICE] Progress for job ${event.jobId} (index ${jobIndex}): ${(normalizedProgress * 100).toFixed(1)}%`);
         if (onProgress) {
           onProgress({
             type: 'progress',
-            jobId: event.jobId, // CRITICAL: jobId tracks which placeholder to update
+            jobId: event.jobId,
+            jobIndex, // CRITICAL: Pass jobIndex so UI can update correct placeholder
             progress: normalizedProgress,
             etaSeconds: lastETA,
             completedCount: resultUrls.length,
@@ -238,16 +265,24 @@ export async function restorePhoto(
         }
       }
       
-      // Handle individual job completion - send result immediately
+      // Handle individual job completion - send result immediately (photobooth pattern)
       if (event.type === 'completed' && event.resultUrl) {
-        console.log(`[RESTORE SERVICE] Job ${event.jobId} completed! URL: ${event.resultUrl}`);
+        const jobIndex = jobMap.get(event.jobId);
+        
+        if (jobIndex === undefined) {
+          console.warn(`[RESTORE SERVICE] Completion for unknown job ${event.jobId}, skipping`);
+          return;
+        }
+        
+        console.log(`[RESTORE SERVICE] Job ${event.jobId} (index ${jobIndex}) completed! URL: ${event.resultUrl}`);
         resultUrls.push(event.resultUrl);
         
-        // Immediately notify about the new result
+        // Immediately notify about the new result with correct index
         if (onProgress) {
           onProgress({
             type: 'completed',
             jobId: event.jobId,
+            jobIndex, // CRITICAL: Pass jobIndex so UI updates correct placeholder
             resultUrl: event.resultUrl,
             completedCount: resultUrls.length,
             totalCount: expectedResults
@@ -300,29 +335,37 @@ export async function restorePhoto(
     console.log('[RESTORE SERVICE] ✓ Registered project "progress" event listener');
 
     // Listen to jobCompleted event - CRITICAL: This is the primary way to get individual results
-    // Photobooth pattern: project.on('jobCompleted') fires for each job as it completes
+    // Photobooth pattern: project.on('jobCompleted') fires for each job as it completes (line 6148)
     const jobCompletedHandler = (job: any) => {
       eventCount++;
       lastEventTime = Date.now();
+      
+      const jobIndex = jobMap.get(job.id);
       console.log(`[RESTORE SERVICE] Job completed event #${eventCount}:`, {
-        job,
+        jobId: job.id,
+        jobIndex,
         hasResultUrl: !!job?.resultUrl,
-        resultUrl: job?.resultUrl,
-        jobId: job.id
+        resultUrl: job?.resultUrl
       });
       
-      // CRITICAL: Immediately process each completed job as it arrives (photobooth pattern)
+      if (jobIndex === undefined) {
+        console.warn(`[RESTORE SERVICE] Job completed for unknown job ${job.id}, skipping`);
+        return;
+      }
+      
+      // CRITICAL: Immediately process each completed job as it arrives (photobooth pattern line 6225-6367)
       if (job.resultUrl && !resolved) {
         // Check if we already have this URL to avoid duplicates
         if (!resultUrls.includes(job.resultUrl)) {
           resultUrls.push(job.resultUrl);
-          console.log(`[RESTORE SERVICE] ✓ Result ${resultUrls.length}/${expectedResults} completed`);
+          console.log(`[RESTORE SERVICE] ✓ Result ${resultUrls.length}/${expectedResults} completed (index ${jobIndex})`);
           
-          // IMMEDIATELY notify UI about the new result (key to showing images as they complete)
+          // IMMEDIATELY notify UI about the new result with correct index
           if (onProgress) {
             onProgress({
               type: 'completed',
               jobId: job.id,
+              jobIndex, // CRITICAL: Pass jobIndex for correct placeholder
               resultUrl: job.resultUrl,
               completedCount: resultUrls.length,
               totalCount: expectedResults

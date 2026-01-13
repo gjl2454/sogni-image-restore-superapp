@@ -94,14 +94,14 @@ export function useRestoration(): UseRestorationResult {
         (progressUpdate) => {
           console.log('[RESTORE HOOK] Progress update:', progressUpdate);
           
-          // Handle progress updates for individual jobs
-          if (progressUpdate.progress !== undefined && progressUpdate.jobId) {
+          // Handle progress updates for individual jobs (photobooth pattern)
+          if (progressUpdate.progress !== undefined && progressUpdate.jobIndex !== undefined) {
             setProgress(progressUpdate.progress);
             
-            // Update individual job progress
-            setRestorationJobs(prev => prev.map(job => 
-              job.id === progressUpdate.jobId || job.index === (progressUpdate.completedCount || 0)
-                ? { ...job, progress: progressUpdate.progress || 0 }
+            // Update specific job progress using jobIndex
+            setRestorationJobs(prev => prev.map((job, idx) => 
+              idx === progressUpdate.jobIndex
+                ? { ...job, progress: progressUpdate.progress || 0, etaSeconds: progressUpdate.etaSeconds }
                 : job
             ));
           }
@@ -111,23 +111,21 @@ export function useRestoration(): UseRestorationResult {
             setEtaSeconds(progressUpdate.etaSeconds);
           }
           
-          // Handle individual job completions - CRITICAL: Update specific job
-          if (progressUpdate.type === 'completed' && progressUpdate.resultUrl) {
+          // Handle individual job completions - CRITICAL: Update specific job using jobIndex
+          if (progressUpdate.type === 'completed' && progressUpdate.resultUrl && progressUpdate.jobIndex !== undefined) {
             console.log('[RESTORE HOOK] Job completed!', {
               jobId: progressUpdate.jobId,
+              jobIndex: progressUpdate.jobIndex,
               resultUrl: progressUpdate.resultUrl,
               completedCount: progressUpdate.completedCount
             });
             
-            // Update the specific job that completed
-            setRestorationJobs(prev => {
-              const jobIndex = (progressUpdate.completedCount || 1) - 1;
-              return prev.map((job, idx) => 
-                idx === jobIndex
-                  ? { ...job, generating: false, progress: 1, resultUrl: progressUpdate.resultUrl! }
-                  : job
-              );
-            });
+            // Update the specific job that completed using jobIndex
+            setRestorationJobs(prev => prev.map((job, idx) => 
+              idx === progressUpdate.jobIndex
+                ? { ...job, generating: false, progress: 1, resultUrl: progressUpdate.resultUrl! }
+                : job
+            ));
             
             // Also update restoredUrls array
             setRestoredUrls(prev => {

@@ -2,10 +2,22 @@ import React from 'react';
 import { ResultsCarousel } from './ResultsCarousel';
 import { ResultsGridWithSliders } from './ResultsGridWithSliders';
 
+// Match RestorationJob from useRestoration
+interface RestorationJob {
+  id: string;
+  index: number;
+  generating: boolean;
+  progress: number;
+  resultUrl: string | null;
+  error: string | null;
+  etaSeconds?: number;
+}
+
 interface ImagePreviewProps {
   imageUrl: string;
   originalUrl?: string;
   restoredUrls?: string[];
+  restorationJobs?: RestorationJob[];
   selectedUrl?: string | null;
   onRestore?: () => void;
   onSelectResult?: (url: string) => void;
@@ -22,6 +34,7 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
   imageUrl,
   originalUrl,
   restoredUrls = [],
+  restorationJobs = [],
   selectedUrl = null,
   onRestore,
   onSelectResult,
@@ -34,8 +47,10 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
   onDownload
 }) => {
   const hasResults = restoredUrls.length > 0;
+  const hasPlaceholders = restorationJobs.length > 0;
   const showComparison = originalUrl && selectedUrl;
-  const showResultsGrid = hasResults && !selectedUrl;
+  // Show results grid if we have results OR placeholders (photobooth pattern)
+  const showResultsGrid = (hasResults || hasPlaceholders) && !selectedUrl;
   const displayUrl = selectedUrl || imageUrl;
 
   return (
@@ -69,6 +84,7 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
         <div className="flex-1 min-h-0 overflow-hidden">
           <ResultsGridWithSliders
             results={restoredUrls}
+            restorationJobs={restorationJobs}
             originalImage={originalUrl}
             onSelect={onSelectResult!}
             onDownload={onDownload}
