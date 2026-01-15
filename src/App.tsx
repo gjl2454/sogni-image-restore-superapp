@@ -18,7 +18,7 @@ function App() {
   const { isAuthenticated, isLoading: authLoading, getSogniClient } = useSogniAuth();
   const { balances, tokenType } = useWallet();
   const { imageUrl, imageData, width, height, error: uploadError, upload, clear: clearUpload } = useImageUpload();
-  const { isRestoring, progress, error: restoreError, restoredUrls, restorationJobs, selectedUrl, etaSeconds, completedCount, totalCount, restore, selectResult, clearSelection, reset: resetRestore } = useRestoration();
+  const { isRestoring, progress, error: restoreError, restoredUrls, restorationJobs, selectedUrl, selectedJobIndex, etaSeconds, completedCount, totalCount, restore, selectResult, clearSelection, reset: resetRestore } = useRestoration();
   const { isGenerating: isGeneratingVideo, progress: videoProgress, error: videoError, videoUrl, generate: generateVideo, reset: resetVideo } = useVideo();
   
   const [showOutOfCredits, setShowOutOfCredits] = useState(false);
@@ -308,7 +308,7 @@ function App() {
                           fontWeight: 500
                         }}
                       >
-                        ↻ New Photo
+                        ↻ new photo
                       </button>
                       {restoredUrls.length > 0 && !isRestoring && (
                         <button
@@ -323,7 +323,7 @@ function App() {
                             cursor: (isRestoring || !imageData) ? 'not-allowed' : 'pointer'
                           }}
                         >
-                          🔄 Retry
+                          let's try again!
                         </button>
                       )}
                     </div>
@@ -422,6 +422,7 @@ function App() {
                             restoredUrls={restoredUrls}
                             restorationJobs={restorationJobs}
                             selectedUrl={selectedUrl}
+                            selectedJobIndex={selectedJobIndex}
                             onRestore={handleRestore}
                             onSelectResult={selectResult}
                             onClearSelection={clearSelection}

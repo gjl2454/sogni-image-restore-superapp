@@ -1,6 +1,7 @@
 import React from 'react';
 import { ResultsCarousel } from './ResultsCarousel';
 import { ResultsGridWithSliders } from './ResultsGridWithSliders';
+import { ResultModal } from './ResultModal';
 
 // Match RestorationJob from useRestoration
 interface RestorationJob {
@@ -19,8 +20,9 @@ interface ImagePreviewProps {
   restoredUrls?: string[];
   restorationJobs?: RestorationJob[];
   selectedUrl?: string | null;
+  selectedJobIndex?: number | null;
   onRestore?: () => void;
-  onSelectResult?: (url: string) => void;
+  onSelectResult?: (url: string, jobIndex?: number) => void;
   onClearSelection?: () => void;
   isRestoring?: boolean;
   progress?: number;
@@ -36,6 +38,7 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
   restoredUrls = [],
   restorationJobs = [],
   selectedUrl = null,
+  selectedJobIndex = null,
   onRestore,
   onSelectResult,
   onClearSelection,
@@ -53,7 +56,54 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
   const showResultsGrid = (hasResults || hasPlaceholders) && !selectedUrl;
   const displayUrl = selectedUrl || imageUrl;
 
+  // Get completed jobs sorted by index for navigation
+  const completedJobs = restorationJobs
+    .filter(job => job.resultUrl !== null)
+    .sort((a, b) => a.index - b.index);
+  
+  // Find position in completed jobs array using selectedJobIndex
+  const positionInCompleted = selectedJobIndex !== null
+    ? completedJobs.findIndex(job => job.index === selectedJobIndex)
+    : -1;
+  
+  console.log('[NAV] Navigation state:', {
+    selectedJobIndex,
+    positionInCompleted,
+    completedJobsCount: completedJobs.length,
+    completedJobsIndices: completedJobs.map(j => j.index),
+    canGoPrevious: positionInCompleted > 0,
+    canGoNext: positionInCompleted >= 0 && positionInCompleted < completedJobs.length - 1
+  });
+  
+  const canGoPrevious = positionInCompleted > 0;
+  const canGoNext = positionInCompleted >= 0 && positionInCompleted < completedJobs.length - 1;
+  
+  const handlePrevious = () => {
+    console.log('[NAV] handlePrevious CALLED', { positionInCompleted, canGoPrevious });
+    if (canGoPrevious && onSelectResult) {
+      const prevJob = completedJobs[positionInCompleted - 1];
+      console.log('[NAV] Selecting previous job:', prevJob.index, prevJob.resultUrl?.substring(0, 50));
+      // Pass both URL and job index to ensure correct selection
+      onSelectResult(prevJob.resultUrl!, prevJob.index);
+    } else {
+      console.log('[NAV] Cannot go previous:', { canGoPrevious, hasHandler: !!onSelectResult });
+    }
+  };
+
+  const handleNext = () => {
+    console.log('[NAV] handleNext CALLED', { positionInCompleted, canGoNext });
+    if (canGoNext && onSelectResult) {
+      const nextJob = completedJobs[positionInCompleted + 1];
+      console.log('[NAV] Selecting next job:', nextJob.index, nextJob.resultUrl?.substring(0, 50));
+      // Pass both URL and job index to ensure correct selection
+      onSelectResult(nextJob.resultUrl!, nextJob.index);
+    } else {
+      console.log('[NAV] Cannot go next:', { canGoNext, hasHandler: !!onSelectResult });
+    }
+  };
+
   return (
+    <>
     <div className="h-full flex flex-col gap-4 overflow-hidden">
       {/* Show progress indicator for ongoing restoration ABOVE the results */}
       {isRestoring && hasResults && (
@@ -90,129 +140,7 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
             onDownload={onDownload}
           />
         </div>
-      ) : showComparison ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 min-h-0 overflow-hidden">
-          <div className="flex flex-col gap-3 min-h-0">
-            <h3 className="text-sm font-semibold flex-shrink-0 text-center" style={{
-              color: 'var(--color-text-secondary)',
-              letterSpacing: '0.05em',
-              textTransform: 'uppercase',
-              fontSize: '0.75rem'
-            }}>
-              Original
-            </h3>
-            <div className="relative overflow-auto flex items-center justify-center flex-1 min-h-0 image-preview-container" style={{
-              background: 'var(--color-bg)',
-              borderRadius: 'var(--radius-lg)',
-              border: '1px solid var(--color-border-light)',
-              padding: '1rem',
-              position: 'relative'
-            }}>
-              <div style={{
-                position: 'relative',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: '100%',
-                height: '100%',
-                minWidth: 0,
-                minHeight: 0
-              }}>
-                <img
-                  src={originalUrl}
-                  alt="Original"
-                  style={{
-                    maxWidth: '100%',
-                    maxHeight: '100%',
-                    width: 'auto',
-                    height: 'auto',
-                    objectFit: 'contain',
-                    display: 'block'
-                  }}
-                />
-              </div>
-            </div>
-            {onDownload && (
-              <button
-                onClick={() => onDownload(originalUrl)}
-                className="w-full btn-secondary flex-shrink-0"
-                style={{
-                  padding: '0.625rem 1rem',
-                  fontSize: '0.875rem'
-                }}
-              >
-                Download Original
-              </button>
-            )}
-          </div>
-          <div className="flex flex-col gap-3 min-h-0">
-            <h3 className="text-sm font-semibold flex-shrink-0 text-center gradient-accent" style={{
-              letterSpacing: '0.05em',
-              textTransform: 'uppercase',
-              fontSize: '0.75rem'
-            }}>
-              Selected Result
-            </h3>
-            <div className="relative overflow-auto flex items-center justify-center flex-1 min-h-0 image-preview-container" style={{
-              background: 'var(--color-bg)',
-              borderRadius: 'var(--radius-lg)',
-              border: '1px solid var(--color-border-light)',
-              padding: '1rem',
-              position: 'relative'
-            }}>
-              <div style={{
-                position: 'relative',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: '100%',
-                height: '100%',
-                minWidth: 0,
-                minHeight: 0
-              }}>
-                <img
-                  src={displayUrl}
-                  alt="Selected Result"
-                  style={{
-                    maxWidth: '100%',
-                    maxHeight: '100%',
-                    width: 'auto',
-                    height: 'auto',
-                    objectFit: 'contain',
-                    display: 'block'
-                  }}
-                />
-              </div>
-            </div>
-            <div className="flex gap-2 flex-shrink-0">
-              {onClearSelection && restoredUrls.length > 1 && (
-                <button
-                  onClick={onClearSelection}
-                  className="flex-1 btn-secondary"
-                  style={{
-                    padding: '0.625rem 1rem',
-                    fontSize: '0.875rem'
-                  }}
-                >
-                  Choose Different
-                </button>
-              )}
-              {onDownload && selectedUrl && (
-                <button
-                  onClick={() => onDownload(selectedUrl)}
-                  className="flex-1 btn-primary"
-                  style={{
-                    padding: '0.625rem 1rem',
-                    fontSize: '0.875rem'
-                  }}
-                >
-                  Download Selected
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      ) : (
+      ) : !selectedUrl ? (
         <div className="flex-1 flex flex-col gap-3 min-h-0 overflow-hidden">
           <div className="overflow-auto flex items-center justify-center flex-1 min-h-0 image-preview-container" style={{
             background: 'var(--color-bg)',
@@ -313,8 +241,23 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
             </div>
           </div>
         </div>
-      )}
+      ) : null}
     </div>
+
+    {/* Result Modal - Shows when user selects a result */}
+    {selectedUrl && onDownload && (
+      <ResultModal
+        isOpen={true}
+        imageUrl={selectedUrl}
+        onClose={onClearSelection || (() => {})}
+        onDownload={() => onDownload(selectedUrl)}
+        currentIndex={positionInCompleted >= 0 ? positionInCompleted : undefined}
+        totalResults={completedJobs.length > 1 ? completedJobs.length : undefined}
+        onPrevious={canGoPrevious ? handlePrevious : undefined}
+        onNext={canGoNext ? handleNext : undefined}
+      />
+    )}
+  </>
   );
 };
 

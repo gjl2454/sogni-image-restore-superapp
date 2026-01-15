@@ -47,10 +47,24 @@ function LoginError({ error }: { error: ErrorData | null }) {
   if (!error) {
     return null;
   }
-  if (error.code === 105) {
-    return <ErrorMessage>Invalid username or password</ErrorMessage>;
+  // Error code 105 or 128 typically means invalid credentials
+  if (error.code === 105 || error.code === 128) {
+    return (
+      <ErrorMessage>
+        Invalid username or password. Please check your credentials and try again.
+        <br />
+        <small className="text-red-600 mt-2 block">
+          Error Code: {error.code} | {error.message}
+        </small>
+      </ErrorMessage>
+    );
   }
-  return <ErrorMessage>{error.message}</ErrorMessage>;
+  return (
+    <ErrorMessage>
+      {error.message || 'An error occurred during login'}
+      {error.code && <small className="text-red-600 mt-2 block">Error Code: {error.code}</small>}
+    </ErrorMessage>
+  );
 }
 
 interface Props {
@@ -63,37 +77,53 @@ function LoginForm({ onSignup, onClose }: Props) {
 
   const doLogin = useCallback(
     async (payload: LoginFields) => {
-      const client = await ensureClient();
-
-      await client.account.login(payload.username, payload.password, payload.remember);
-
-      console.log('✅ Login successful!', {
+      console.log('🔐 Attempting login via Sogni SDK...', {
         username: payload.username,
-        clientAuthenticated: client.account.currentAccount?.isAuthenticated,
-        currentBalance: client.account.currentAccount?.balance
+        remember: payload.remember
       });
 
-      if (payload.remember) {
-        localStorage.setItem('sogni-persist', 'true');
-      } else {
-        localStorage.removeItem('sogni-persist');
+      try {
+        // Use the Sogni SDK directly - restoration-local.sogni.ai should be allowed by CORS
+        const client = await ensureClient();
+        
+        console.log('🔐 Sogni client ready, calling login...');
+        await client.account.login(payload.username, payload.password, payload.remember);
+
+        console.log('✅ Login successful!', {
+          username: payload.username,
+          clientAuthenticated: client.account.currentAccount?.isAuthenticated,
+          currentBalance: client.account.currentAccount?.balance
+        });
+
+        if (payload.remember) {
+          localStorage.setItem('sogni-persist', 'true');
+        } else {
+          localStorage.removeItem('sogni-persist');
+        }
+
+        // Set authenticated state
+        setAuthenticatedState(
+          payload.username,
+          client.account.currentAccount?.email
+        );
+
+        // Force a balance refresh
+        console.log('💰 Triggering balance update after login...');
+        const currentAccount = client.account.currentAccount;
+        if (currentAccount && typeof (currentAccount as any).emit === 'function') {
+          (currentAccount as any).emit('updated');
+        }
+
+        onClose();
+      } catch (error: any) {
+        console.error('❌ Login failed:', {
+          error,
+          errorCode: error?.code,
+          errorMessage: error?.message,
+          username: payload.username
+        });
+        throw error;
       }
-
-      // Set authenticated state first
-      setAuthenticatedState(
-        payload.username,
-        client.account.currentAccount?.email
-      );
-
-      // Force a balance refresh by triggering the 'updated' event on currentAccount
-      // This ensures the useEntity hook picks up the balance
-      console.log('💰 Triggering balance update after login...');
-      const currentAccount = client.account.currentAccount;
-      if (currentAccount && typeof (currentAccount as any).emit === 'function') {
-        (currentAccount as any).emit('updated');
-      }
-
-      onClose();
     },
     [ensureClient, setAuthenticatedState, onClose]
   );

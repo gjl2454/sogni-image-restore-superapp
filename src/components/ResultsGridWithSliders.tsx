@@ -16,7 +16,7 @@ interface ResultsGridWithSlidersProps {
   results: string[];
   restorationJobs?: RestorationJob[];
   originalImage?: string;
-  onSelect: (url: string) => void;
+  onSelect: (url: string, jobIndex?: number) => void;
   onDownload?: (url: string) => void;
 }
 
@@ -41,32 +41,32 @@ export const ResultsGridWithSliders: React.FC<ResultsGridWithSlidersProps> = ({
 
   if (itemsToDisplay.length === 0) return null;
 
-  // Determine grid columns based on number of items
+  // Determine grid columns based on number of items - more columns = smaller images
   const getGridCols = () => {
-    if (itemsToDisplay.length === 2) return 'grid-cols-1 md:grid-cols-2';
-    if (itemsToDisplay.length === 4) return 'grid-cols-2';
-    if (itemsToDisplay.length === 6) return 'grid-cols-2 md:grid-cols-3';
-    return 'grid-cols-2';
+    if (itemsToDisplay.length === 2) return 'grid-cols-2';
+    if (itemsToDisplay.length === 4) return 'grid-cols-2 md:grid-cols-4';
+    if (itemsToDisplay.length === 6) return 'grid-cols-3 md:grid-cols-6';
+    return 'grid-cols-2 md:grid-cols-4';
   };
 
   return (
-    <div className="w-full h-full flex flex-col gap-4 overflow-y-auto">
-      {/* Header */}
+    <div className="w-full h-full flex flex-col gap-2">
+      {/* Header - more compact */}
       <div className="text-center flex-shrink-0">
         <p className="font-bold" style={{
           background: 'var(--sogni-gradient)',
           WebkitBackgroundClip: 'text',
           WebkitTextFillColor: 'transparent',
           backgroundClip: 'text',
-          fontSize: '1.0625rem',
-          marginBottom: '0.375rem',
+          fontSize: '0.9375rem',
+          marginBottom: '0.25rem',
           letterSpacing: '-0.01em'
         }}>
           ✨ {restorationJobs.some(j => j.generating) ? 'Restoring Your Photos' : 'Review Your Results'}
         </p>
         <p style={{
           color: 'var(--color-text-secondary)',
-          fontSize: '0.8125rem',
+          fontSize: '0.75rem',
           fontWeight: 500
         }}>
           {restorationJobs.some(j => j.generating) 
@@ -76,40 +76,40 @@ export const ResultsGridWithSliders: React.FC<ResultsGridWithSlidersProps> = ({
         </p>
       </div>
 
-      {/* Grid of Results/Placeholders (PHOTOBOOTH PATTERN) */}
-      <div className={`grid ${getGridCols()} gap-4 flex-1 min-h-0 pb-4 px-2`}>
+      {/* Grid of Results/Placeholders - compact layout to fit all without scrolling */}
+      <div className={`grid ${getGridCols()} gap-2 flex-shrink-0 px-1`}>
         {itemsToDisplay.map((item, index) => (
           <div
             key={item.id}
-            className="flex flex-col gap-2 fade-in"
+            className="flex flex-col gap-1 fade-in"
             style={{
               animationDelay: `${index * 100}ms`,
               animationFillMode: 'both',
               opacity: 0
             }}
           >
-            {/* Before/After Slider Container or Loading Placeholder */}
+            {/* Before/After Slider Container or Loading Placeholder - smaller and squarer */}
             <div
-              className="relative rounded-lg overflow-hidden transition-all duration-300"
+              className="relative rounded-md overflow-hidden transition-all duration-300"
               onMouseEnter={() => !item.generating ? setHoveredIndex(index) : null}
               onMouseLeave={() => setHoveredIndex(null)}
               style={{
-                aspectRatio: '3 / 4',
+                aspectRatio: '1 / 1',
                 background: item.generating ? 'linear-gradient(135deg, rgba(180, 205, 237, 0.1), rgba(194, 148, 255, 0.1))' : 'var(--color-bg-elevated)',
                 boxShadow: hoveredIndex === index && !item.generating
-                  ? '0 16px 56px rgba(180, 205, 237, 0.5), 0 0 0 2px rgba(180, 205, 237, 0.3), 0 0 60px rgba(180, 205, 237, 0.6), 0 0 100px rgba(180, 205, 237, 0.4)'
-                  : '0 4px 20px rgba(0, 0, 0, 0.08), 0 0 0 1px var(--color-border-light)',
-                transform: hoveredIndex === index && !item.generating ? 'translateY(-4px) scale(1.02)' : 'translateY(0) scale(1)',
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  ? '0 8px 24px rgba(180, 205, 237, 0.4), 0 0 0 2px rgba(180, 205, 237, 0.3)'
+                  : '0 2px 8px rgba(0, 0, 0, 0.06), 0 0 0 1px var(--color-border-light)',
+                transform: hoveredIndex === index && !item.generating ? 'translateY(-2px) scale(1.02)' : 'translateY(0) scale(1)',
+                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                 border: '1px solid var(--color-border-light)'
               }}
             >
               {item.generating ? (
-                /* PHOTOBOOTH PATTERN: Loading placeholder with progress and ETA */
-                <div className="w-full h-full flex flex-col items-center justify-center p-6">
-                  <div className="text-4xl mb-4 animate-pulse">✨</div>
-                  <div className="w-full max-w-[80%]">
-                    <div className="w-full rounded-full h-2 overflow-hidden mb-2" style={{
+                /* PHOTOBOOTH PATTERN: Loading placeholder with progress and ETA - more compact */
+                <div className="w-full h-full flex flex-col items-center justify-center p-3">
+                  <div className="text-2xl mb-2 animate-pulse">✨</div>
+                  <div className="w-full max-w-[85%]">
+                    <div className="w-full rounded-full h-1.5 overflow-hidden mb-1" style={{
                       background: 'rgba(180, 205, 237, 0.2)'
                     }}>
                       <div 
@@ -117,11 +117,11 @@ export const ResultsGridWithSliders: React.FC<ResultsGridWithSlidersProps> = ({
                         style={{
                           width: `${Math.round(item.progress * 100)}%`,
                           background: 'var(--sogni-gradient)',
-                          boxShadow: '0 0 12px rgba(180, 205, 237, 0.5)'
+                          boxShadow: '0 0 8px rgba(180, 205, 237, 0.5)'
                         }}
                       />
                     </div>
-                    <p className="text-center text-xs font-semibold mb-1" style={{ color: 'var(--color-text-primary)' }}>
+                    <p className="text-center font-semibold" style={{ color: 'var(--color-text-primary)', fontSize: '0.6875rem' }}>
                       {item.etaSeconds !== undefined && item.etaSeconds > 0 
                         ? (() => {
                             if (item.etaSeconds < 60) return `${Math.ceil(item.etaSeconds)}s`;
@@ -132,23 +132,16 @@ export const ResultsGridWithSliders: React.FC<ResultsGridWithSlidersProps> = ({
                         : `${Math.round(item.progress * 100)}%`
                       }
                     </p>
-                    {item.etaSeconds !== undefined && item.etaSeconds > 0 && (
-                      <p className="text-center text-xs" style={{ color: 'var(--color-text-secondary)' }}>
-                        {Math.round(item.progress * 100)}% complete
-                      </p>
-                    )}
                   </div>
                 </div>
               ) : item.resultUrl ? (
                 /* Show completed result */
                 originalImage ? (
-                  <div 
-                    className="w-full h-full cursor-pointer"
-                    onClick={() => onSelect(item.resultUrl!)}
-                  >
+                  <div className="w-full h-full cursor-pointer">
                     <BeforeAfterCompare
                       beforeImage={originalImage}
                       afterImage={item.resultUrl}
+                      onClick={() => onSelect(item.resultUrl!, item.index)}
                     />
                   </div>
                 ) : (
@@ -156,23 +149,24 @@ export const ResultsGridWithSliders: React.FC<ResultsGridWithSlidersProps> = ({
                     src={item.resultUrl}
                     alt={`Result ${index + 1}`}
                     className="w-full h-full object-cover cursor-pointer"
-                    onClick={() => onSelect(item.resultUrl!)}
+                    onClick={() => onSelect(item.resultUrl!, item.index)}
                   />
                 )
               ) : null}
             </div>
 
-            {/* Result Number Badge and Action Button */}
+            {/* Result Number Badge and Action Button - more compact */}
             <div className="flex items-center justify-between flex-shrink-0">
               <span
-                className="px-3 py-1.5 rounded-full text-xs font-semibold"
+                className="px-2 py-0.5 rounded-full font-semibold"
                 style={{
                   background: item.generating ? 'rgba(180, 205, 237, 0.1)' : 'var(--sogni-gradient-subtle)',
                   color: 'var(--color-text-secondary)',
-                  border: '1px solid var(--color-border)'
+                  border: '1px solid var(--color-border)',
+                  fontSize: '0.625rem'
                 }}
               >
-                {item.generating ? 'Generating...' : `Result ${index + 1}`}
+                {item.generating ? '...' : `#${index + 1}`}
               </span>
               {onDownload && item.resultUrl && !item.generating && (
                 <button
@@ -182,12 +176,12 @@ export const ResultsGridWithSliders: React.FC<ResultsGridWithSlidersProps> = ({
                   }}
                   className="btn-secondary"
                   style={{
-                    padding: '0.5rem 1rem',
-                    fontSize: '0.8125rem',
+                    padding: '0.25rem 0.5rem',
+                    fontSize: '0.625rem',
                     fontWeight: 500
                   }}
                 >
-                  Download
+                  ↓
                 </button>
               )}
             </div>

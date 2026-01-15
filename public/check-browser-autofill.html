@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Check Browser Autofill - Sogni Image Restore</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-top: 0;
+        }
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .form-box {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        button {
+            background: #2196f3;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #1976d2;
+        }
+        .result-box {
+            background: #f5f5f5;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Check Browser Autofill</h1>
+        
+        <div class="info-box">
+            <strong>Note:</strong> Your browser may have saved your username and password in its autofill data. 
+            Try typing in the fields below - your browser should suggest saved credentials.
+        </div>
+
+        <div class="form-box">
+            <h3>Try typing your username here:</h3>
+            <input type="text" name="username" id="username" placeholder="Start typing your username..." autocomplete="username">
+            <p><small>The browser should show autofill suggestions if it has saved your username.</small></p>
+        </div>
+
+        <div class="form-box">
+            <h3>Try typing your password here:</h3>
+            <input type="password" name="password" id="password" placeholder="Start typing your password..." autocomplete="current-password">
+            <p><small>The browser should show autofill suggestions if it has saved your password.</small></p>
+        </div>
+
+        <button onclick="checkAutofill()">Check Autofill Data</button>
+        <button onclick="checkLocalStorage()">Check LocalStorage</button>
+
+        <div id="results"></div>
+    </div>
+
+    <script>
+        function checkAutofill() {
+            const results = document.getElementById('results');
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            let output = '<h2>📋 Autofill Check Results:</h2><div class="result-box">';
+            
+            if (username) {
+                output += `Username found: ${username}\n`;
+            } else {
+                output += 'No username entered. Try typing in the username field above - your browser may autofill it.\n';
+            }
+            
+            if (password) {
+                output += `Password found: ${'*'.repeat(password.length)}\n`;
+                output += `Password length: ${password.length} characters\n`;
+            } else {
+                output += 'No password entered. Try typing in the password field above - your browser may autofill it.\n';
+            }
+            
+            output += '\n💡 Tip: Click in the username field and wait a moment - your browser should show a dropdown with saved usernames.\n';
+            output += '💡 Tip: Click in the password field and wait a moment - your browser should show a dropdown with saved passwords.\n';
+            
+            output += '</div>';
+            results.innerHTML = output;
+        }
+
+        function checkLocalStorage() {
+            const results = document.getElementById('results');
+            let output = '<h2>📦 LocalStorage Data:</h2><div class="result-box">';
+            
+            try {
+                const keys = Object.keys(localStorage);
+                if (keys.length === 0) {
+                    output += 'No data found in localStorage\n';
+                } else {
+                    keys.forEach(key => {
+                        const value = localStorage.getItem(key);
+                        output += `${key}: ${value}\n`;
+                    });
+                }
+            } catch (e) {
+                output += `Error reading localStorage: ${e.message}\n`;
+            }
+            
+            output += '\n⚠️ Note: For security, passwords are NOT stored in localStorage.\n';
+            output += 'Your credentials are likely saved in your browser\'s password manager.\n';
+            
+            output += '</div>';
+            results.innerHTML = output;
+        }
+
+        // Auto-focus username field to trigger autofill
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                document.getElementById('username').focus();
+            }, 500);
+        });
+    </script>
+</body>
+</html>

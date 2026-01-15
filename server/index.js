@@ -3,6 +3,7 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import restorationRoutes from './routes/restoration.js';
+import authRoutes from './routes/auth.js';
 
 dotenv.config();
 
@@ -46,6 +47,7 @@ app.get('/health', (req, res) => {
 });
 
 // API routes
+app.use('/api/auth', authRoutes);
 app.use('/api/restore', restorationRoutes);
 
 app.listen(port, () => {

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { SogniClient } from '@sogni-ai/sogni-client';
 import { restorePhoto } from '../services/restorationService';
 import { TokenType } from '../types/wallet';
@@ -21,11 +21,12 @@ interface UseRestorationResult {
   restoredUrls: string[];
   restorationJobs: RestorationJob[]; // Individual job states
   selectedUrl: string | null;
+  selectedJobIndex: number | null;
   etaSeconds: number | undefined;
   completedCount: number;
   totalCount: number;
   restore: (client: SogniClient, imageData: Uint8Array, width: number, height: number, tokenType: TokenType, numberOfMedia?: number) => Promise<void>;
-  selectResult: (url: string) => void;
+  selectResult: (url: string, jobIndex?: number) => void;
   clearSelection: () => void;
   reset: () => void;
 }
@@ -37,6 +38,7 @@ export function useRestoration(): UseRestorationResult {
   const [restoredUrls, setRestoredUrls] = useState<string[]>([]);
   const [restorationJobs, setRestorationJobs] = useState<RestorationJob[]>([]);
   const [selectedUrl, setSelectedUrl] = useState<string | null>(null);
+  const [selectedJobIndex, setSelectedJobIndex] = useState<number | null>(null);
   const [etaSeconds, setEtaSeconds] = useState<number | undefined>(undefined);
   const [completedCount, setCompletedCount] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
@@ -183,12 +185,32 @@ export function useRestoration(): UseRestorationResult {
     }
   }, []);
 
-  const selectResult = useCallback((url: string) => {
+  const selectResult = useCallback((url: string, jobIndex?: number) => {
+    console.log('[SELECT] Selecting URL:', url, 'with jobIndex:', jobIndex);
     setSelectedUrl(url);
+    // If jobIndex is provided, use it directly (more reliable)
+    if (jobIndex !== undefined) {
+      console.log('[SELECT] Using provided jobIndex:', jobIndex);
+      setSelectedJobIndex(jobIndex);
+    } else {
+      // Otherwise, find it from restorationJobs
+      setRestorationJobs(currentJobs => {
+        const job = currentJobs.find(j => j.resultUrl === url);
+        if (job) {
+          console.log('[SELECT] Found job index:', job.index, 'for URL');
+          setSelectedJobIndex(job.index);
+        } else {
+          console.log('[SELECT] No job found for URL');
+          setSelectedJobIndex(null);
+        }
+        return currentJobs;
+      });
+    }
   }, []);
 
   const clearSelection = useCallback(() => {
     setSelectedUrl(null);
+    setSelectedJobIndex(null);
   }, []);
 
   const reset = useCallback(() => {
@@ -198,6 +220,7 @@ export function useRestoration(): UseRestorationResult {
     setRestoredUrls([]);
     setRestorationJobs([]);
     setSelectedUrl(null);
+    setSelectedJobIndex(null);
     setEtaSeconds(undefined);
     setCompletedCount(0);
     setTotalCount(0);
@@ -210,6 +233,7 @@ export function useRestoration(): UseRestorationResult {
     restoredUrls,
     restorationJobs,
     selectedUrl,
+    selectedJobIndex,
     etaSeconds,
     completedCount,
     totalCount,

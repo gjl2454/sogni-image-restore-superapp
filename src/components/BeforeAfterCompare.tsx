@@ -3,11 +3,13 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 interface BeforeAfterCompareProps {
   beforeImage: string;
   afterImage: string;
+  onClick?: () => void;
 }
 
 export const BeforeAfterCompare: React.FC<BeforeAfterCompareProps> = ({
   beforeImage,
-  afterImage
+  afterImage,
+  onClick
 }) => {
   const [sliderPosition, setSliderPosition] = useState(50);
   const [isDragging, setIsDragging] = useState(false);
@@ -71,6 +73,27 @@ export const BeforeAfterCompare: React.FC<BeforeAfterCompareProps> = ({
     }
   }, [isDragging, handleMouseUp, handleTouchMove, handleMove]);
 
+  // Track if we're dragging to differentiate click from drag
+  const startPosRef = useRef<{ x: number; y: number } | null>(null);
+  
+  const handleContainerMouseDown = useCallback((e: React.MouseEvent) => {
+    startPosRef.current = { x: e.clientX, y: e.clientY };
+    handleMouseDown();
+  }, [handleMouseDown]);
+  
+  const handleContainerClick = useCallback((e: React.MouseEvent) => {
+    // Only trigger onClick if this was a click (not a drag)
+    if (startPosRef.current && onClick) {
+      const dx = Math.abs(e.clientX - startPosRef.current.x);
+      const dy = Math.abs(e.clientY - startPosRef.current.y);
+      // If moved less than 5px, consider it a click
+      if (dx < 5 && dy < 5) {
+        onClick();
+      }
+    }
+    startPosRef.current = null;
+  }, [onClick]);
+
   return (
     <div 
       ref={containerRef}
@@ -84,8 +107,9 @@ export const BeforeAfterCompare: React.FC<BeforeAfterCompareProps> = ({
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onMouseMove={handleMouseMove}
-      onMouseDown={handleMouseDown}
+      onMouseDown={handleContainerMouseDown}
       onMouseUp={handleMouseUp}
+      onClick={handleContainerClick}
       onTouchStart={handleMouseDown}
       onTouchEnd={handleMouseUp}
       onTouchMove={handleTouchMove}
@@ -232,43 +256,7 @@ export const BeforeAfterCompare: React.FC<BeforeAfterCompareProps> = ({
         </div>
       </div>
 
-      {/* Clean Labels - Centered on Slider */}
-      <div 
-        className="absolute px-3 py-1.5 rounded-full text-xs font-semibold pointer-events-none" 
-        style={{
-          left: `${sliderPosition}%`,
-          top: '2rem',
-          transform: 'translateX(-50%)',
-          background: 'rgba(52, 73, 102, 0.9)',
-          backdropFilter: 'blur(10px)',
-          color: 'white',
-          letterSpacing: '0.05em',
-          boxShadow: '0 2px 12px rgba(52, 73, 102, 0.4)',
-          zIndex: 30,
-          transition: (isDragging || isHovering) ? 'none' : 'left 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-          whiteSpace: 'nowrap'
-        }}
-      >
-        BEFORE
-      </div>
-      <div 
-        className="absolute px-3 py-1.5 rounded-full text-xs font-semibold pointer-events-none" 
-        style={{
-          left: `${sliderPosition}%`,
-          bottom: '2rem',
-          transform: 'translateX(-50%)',
-          background: 'rgba(180, 205, 237, 0.9)',
-          backdropFilter: 'blur(10px)',
-          color: 'white',
-          letterSpacing: '0.05em',
-          boxShadow: '0 2px 12px rgba(180, 205, 237, 0.4)',
-          zIndex: 30,
-          transition: (isDragging || isHovering) ? 'none' : 'left 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-          whiteSpace: 'nowrap'
-        }}
-      >
-        AFTER
-      </div>
+      {/* Labels removed per user request */}
     </div>
   );
 };

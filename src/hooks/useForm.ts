@@ -163,9 +163,20 @@ function useForm<F, R>(
         console.error('Failed to submit form', error);
         isSubmittingRef.current = false;
         if (error instanceof ApiError) {
+          const apiError = error as any;
+          const errorCode = apiError.payload?.errorCode || apiError.code || apiError.errorCode || 0;
+          const errorMessage = error.message || apiError.payload?.message || 'An error occurred';
+          
+          console.error('API Error details:', {
+            errorCode,
+            message: errorMessage,
+            fullError: apiError,
+            payload: apiError.payload
+          });
+          
           dispatch({
             type: 'submit/error',
-            payload: { code: (error as any).payload?.errorCode, message: (error as Error).message }
+            payload: { code: errorCode, message: errorMessage }
           });
           return;
         }

@@ -74,21 +74,13 @@ class SogniAuthManager implements SogniAuthService {
   }
 
   private getSogniUrls() {
-    const hostname = window.location.hostname;
-    const isStaging = hostname.includes('staging');
-    
-    if (isStaging) {
-      return {
-        rest: 'https://api-staging.sogni.ai',
-        socket: 'wss://socket-staging.sogni.ai'
-      };
-    }
-    
-    // Use production endpoints for localhost and production
-    return {
+    // Use production endpoints
+    const urls = {
       rest: 'https://api.sogni.ai',
       socket: 'wss://socket.sogni.ai'
     };
+    console.log('🔧 Using PRODUCTION endpoints:', urls);
+    return urls;
   }
 
   async checkExistingSession(): Promise<boolean> {
@@ -141,9 +133,42 @@ class SogniAuthManager implements SogniAuthService {
         });
       }
 
-      console.log('🔐 Calling checkAuth to resume session...');
+      // First check backend session (skip direct API call to avoid CORS)
+      let backendSession = null;
+      try {
+        const backendResponse = await fetch('/api/auth/me', {
+          credentials: 'include'
+        });
+        
+        if (backendResponse.ok) {
+          backendSession = await backendResponse.json();
+          if (backendSession.authenticated) {
+            console.log('✅ Backend session found:', backendSession.user);
+            // Use backend session data instead of calling checkAuth
+            this.setAuthState({
+              isAuthenticated: true,
+              authMode: 'frontend',
+              user: {
+                username: backendSession.user.username,
+                email: backendSession.user.email
+              },
+              isLoading: false,
+              error: null,
+              sessionTransferred: false
+            });
+            tabSync.notifyNewAuthenticatedTab();
+            return true;
+          }
+        }
+      } catch (error) {
+        console.log('🔐 Backend session check failed (non-critical):', error);
+      }
+
+      // Only try direct checkAuth if backend session doesn't exist
+      // This will likely fail due to CORS, but we'll handle it gracefully
+      console.log('🔐 No backend session, attempting direct checkAuth (may fail due to CORS)...');
       const isAuthenticated = await this.sogniClient?.checkAuth().catch((error: any) => {
-        console.log('🔐 checkAuth failed:', error);
+        console.log('🔐 checkAuth failed (expected due to CORS):', error);
 
         if (error && typeof error === 'object' &&
             (error.code === 4052 || (error.message && error.message.includes('verify your email')))) {
