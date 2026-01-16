@@ -4,18 +4,30 @@ import { useWallet } from './hooks/useWallet';
 import { useImageUpload } from './hooks/useImageUpload';
 import { useRestoration } from './hooks/useRestoration';
 import { useVideo } from './hooks/useVideo';
+import { useCredits } from './hooks/useCredits';
+import { useToastContext } from './context/ToastContext';
 import { AuthStatus } from './components/auth/AuthStatus';
 import { UploadZone } from './components/UploadZone';
 import { ImagePreview } from './components/ImagePreview';
 import { ProgressIndicator } from './components/ProgressIndicator';
 import { OutOfCreditsPopup } from './components/OutOfCreditsPopup';
-import { BeforeAfterSlider } from './components/BeforeAfterSlider';
 import { BeforeAfterGallery } from './components/BeforeAfterGallery';
 import { FeaturesSection } from './components/FeaturesSection';
+import { ToastProvider } from './context/ToastContext';
+import NetworkStatus from './components/shared/NetworkStatus';
+import FriendlyErrorModal from './components/shared/FriendlyErrorModal';
+import PWAInstallPrompt from './components/shared/PWAInstallPrompt';
+import CreditsDisplay from './components/shared/CreditsDisplay';
+import HelpOnboarding from './components/shared/HelpOnboarding';
+import RecentProjects from './components/RecentProjects';
 import { downloadImage } from './utils/download';
+import { downloadImagesAsZip } from './utils/bulkDownload';
+import { trackRestorationStarted, trackRestorationCompleted, trackRestorationFailed, trackDownload, trackVideoGenerationStarted, trackVideoGenerationCompleted } from './services/analyticsService';
 
-function App() {
+function AppContent() {
   const { isAuthenticated, isLoading: authLoading, getSogniClient } = useSogniAuth();
+  const [resetOnboarding, setResetOnboarding] = useState<(() => void) | null>(null);
+  const [onboardingKey, setOnboardingKey] = useState(0); // Force re-render on reset
   const { balances, tokenType } = useWallet();
   const { imageUrl, imageData, width, height, error: uploadError, upload, clear: clearUpload } = useImageUpload();
   const { isRestoring, progress, error: restoreError, restoredUrls, restorationJobs, selectedUrl, selectedJobIndex, etaSeconds, completedCount, totalCount, restore, selectResult, clearSelection, reset: resetRestore } = useRestoration();
@@ -24,6 +36,12 @@ function App() {
   const [showOutOfCredits, setShowOutOfCredits] = useState(false);
   const [originalUrl, setOriginalUrl] = useState<string | null>(null);
   const [numberOfImages, setNumberOfImages] = useState<number>(4);
+  const [errorModal, setErrorModal] = useState<any>(null);
+  const [connectionState] = useState<'online' | 'offline' | 'connecting' | 'timeout'>('online');
+  const [showRecentProjects, setShowRecentProjects] = useState(false);
+  
+  const { estimatedRestorationCost, trackRestoration: trackRestorationUsage, trackVideo: trackVideoUsage } = useCredits(numberOfImages);
+  const { showToast } = useToastContext();
 
   // Store original URL when image is uploaded
   useEffect(() => {
@@ -105,19 +123,37 @@ function App() {
 
     try {
       console.log('[APP] Calling restore function...');
+      // Track restoration started
+      await trackRestorationStarted({ numberOfImages, width, height });
       await restore(client, imageData, width, height, tokenType, numberOfImages);
       console.log('[APP] Restore function completed successfully');
+      // Track restoration completed - use numberOfImages since restoredUrls might not be updated yet
+      await trackRestorationCompleted({ numberOfImages, restoredCount: numberOfImages });
+      trackRestorationUsage(numberOfImages);
+      showToast({
+        type: 'success',
+        title: 'Restoration Complete!',
+        message: `Successfully restored ${numberOfImages} image${numberOfImages !== 1 ? 's' : ''}`
+      });
     } catch (error: any) {
       // Error state is already set by useRestoration hook
       // We catch here to handle specific UI actions (like showing credit popup)
       console.error('[APP] Restore function failed:', error?.message);
+      await trackRestorationFailed(error?.message || 'Unknown error', { numberOfImages });
       if (error.message === 'INSUFFICIENT_CREDITS' || 
           error.message?.toLowerCase().includes('insufficient')) {
         setShowOutOfCredits(true);
+      } else {
+        setErrorModal({
+          type: 'connection_error',
+          title: 'Restoration Failed',
+          message: error?.message || 'An error occurred during restoration. Please try again.',
+          canRetry: true
+        });
       }
       // Don't re-throw - error UI is shown via restoreError state
     }
-  }, [imageData, isAuthenticated, getSogniClient, balances, tokenType, width, height, numberOfImages, restore, restoreError, resetRestore]);
+  }, [imageData, isAuthenticated, getSogniClient, balances, tokenType, width, height, numberOfImages, restore, restoreError, resetRestore, restoredUrls, showToast, trackRestorationUsage, trackRestorationStarted, trackRestorationCompleted, trackRestorationFailed]);
 
   // Auto-restore after upload
   useEffect(() => {
@@ -136,8 +172,146 @@ function App() {
     const filename = isOriginal
       ? `original-photo-${Date.now()}.jpg`
       : `restored-photo-${Date.now()}.jpg`;
-    await downloadImage(url, filename);
-  }, [originalUrl]);
+    try {
+      await downloadImage(url, filename);
+      await trackDownload({ type: isOriginal ? 'original' : 'restored' });
+      showToast({
+        type: 'success',
+        title: 'Download Started',
+        message: 'Your photo is downloading...'
+      });
+    } catch (error) {
+      console.error('Download failed:', error);
+      showToast({
+        type: 'error',
+        title: 'Download Failed',
+        message: 'Unable to download photo. Please try again.'
+      });
+    }
+  }, [originalUrl, showToast]);
+
+  const handleBulkDownload = useCallback(async () => {
+    if (restoredUrls.length === 0) {
+      showToast({
+        type: 'error',
+        title: 'No Images',
+        message: 'No restored images to download.'
+      });
+      return;
+    }
+
+    // Show a single persistent progress toast
+    let hideProgressToast: (() => void) | null = null;
+    const showProgressToast = (message: string) => {
+      // Hide previous toast if it exists
+      if (hideProgressToast) {
+        hideProgressToast();
+      }
+      // Show new toast
+      hideProgressToast = showToast({
+        type: 'info',
+        title: 'Downloading...',
+        message,
+        autoClose: false,
+        timeout: 0
+      });
+    };
+
+    try {
+      // Show initial toast
+      showProgressToast(`Preparing ${restoredUrls.length} image${restoredUrls.length !== 1 ? 's' : ''}...`);
+
+      // Prepare image data for ZIP
+      const images = restoredUrls.map((url, index) => ({
+        url,
+        filename: `restored-photo-${index + 1}-${Date.now()}.jpg`
+      }));
+
+      let currentStage = '';
+      let lastUpdateTime = 0;
+      const STAGE_UPDATE_INTERVAL = 800; // Update stage messages every 800ms max
+      
+      // Download as ZIP - only show major stage changes
+      const success = await downloadImagesAsZip(
+        images,
+        `sogni-restoration-${Date.now()}.zip`,
+        (current, total, message) => {
+          const now = Date.now();
+          let newStage = '';
+          
+          // Determine current stage
+          if (message.includes('Starting download preparation')) {
+            newStage = 'preparing';
+          } else if (message.includes('Adding image')) {
+            newStage = 'adding';
+          } else if (message.includes('Generating ZIP')) {
+            newStage = 'generating';
+          } else if (message.includes('Compressing')) {
+            newStage = 'compressing';
+          } else if (message.includes('Downloading ZIP')) {
+            newStage = 'downloading';
+          }
+          
+          // Only update if stage changed and enough time has passed
+          if (newStage && newStage !== currentStage && (now - lastUpdateTime >= STAGE_UPDATE_INTERVAL || currentStage === '')) {
+            currentStage = newStage;
+            lastUpdateTime = now;
+            
+            // Format message based on stage
+            let progressMessage = '';
+            if (newStage === 'preparing') {
+              progressMessage = `Preparing ${total} image${total !== 1 ? 's' : ''}...`;
+            } else if (newStage === 'adding') {
+              progressMessage = `Adding images... (${current}/${total})`;
+            } else if (newStage === 'generating') {
+              progressMessage = 'Creating ZIP file...';
+            } else if (newStage === 'compressing') {
+              const percentMatch = message.match(/(\d+)%/);
+              if (percentMatch) {
+                progressMessage = `Compressing... ${percentMatch[1]}%`;
+              } else {
+                progressMessage = 'Compressing...';
+              }
+            } else if (newStage === 'downloading') {
+              progressMessage = 'Starting download...';
+            }
+            
+            if (progressMessage) {
+              showProgressToast(progressMessage);
+            }
+          }
+        }
+      );
+
+      // Hide progress toast
+      if (hideProgressToast) {
+        hideProgressToast();
+      }
+
+      if (success) {
+        showToast({
+          type: 'success',
+          title: 'Download Complete!',
+          message: `Downloaded ${restoredUrls.length} image${restoredUrls.length !== 1 ? 's' : ''} as ZIP file.`
+        });
+        // Track bulk download
+        await trackDownload({ type: 'bulk', count: restoredUrls.length });
+      } else {
+        throw new Error('Bulk download failed');
+      }
+    } catch (error) {
+      console.error('Bulk download failed:', error);
+      // Hide progress toast if it exists
+      if (hideProgressToast) {
+        hideProgressToast();
+      }
+      showToast({
+        type: 'error',
+        title: 'Download Failed',
+        message: 'Unable to download images. Please try again.'
+      });
+    }
+  }, [restoredUrls, showToast]);
 
   const handleGenerateVideo = useCallback(async () => {
     if (!selectedUrl || !isAuthenticated) {
@@ -161,8 +335,16 @@ function App() {
     }
 
     try {
+      await trackVideoGenerationStarted({ width, height });
       await generateVideo(client, selectedUrl, width, height, tokenType);
       console.log('[APP] Video generation completed successfully');
+      await trackVideoGenerationCompleted({ width, height });
+      trackVideoUsage();
+      showToast({
+        type: 'success',
+        title: 'Video Generated!',
+        message: 'Your video is ready to download'
+      });
     } catch (error: any) {
       // Error state is already set by useVideo hook
       // We catch here to handle specific UI actions (like showing credit popup)
@@ -173,7 +355,7 @@ function App() {
       }
       // Don't re-throw - error UI is shown via videoError state
     }
-  }, [selectedUrl, isAuthenticated, getSogniClient, balances, tokenType, width, height, generateVideo]);
+  }, [selectedUrl, isAuthenticated, getSogniClient, balances, tokenType, width, height, generateVideo, showToast, trackVideoUsage, trackVideoGenerationStarted, trackVideoGenerationCompleted]);
 
   const handleNewPhoto = useCallback(() => {
     clearUpload();
@@ -208,7 +390,78 @@ function App() {
           <a href="https://restoration-local.sogni.ai/" className="text-sm font-bold gradient-accent hover:opacity-80 transition-opacity cursor-pointer" style={{ letterSpacing: '-0.02em', textDecoration: 'none', fontSize: '1.375rem', lineHeight: '1.5' }}>
             Sogni Restoration
           </a>
-          <AuthStatus />
+          <div className="flex items-center gap-3">
+            {isAuthenticated && balances && tokenType && (
+              <CreditsDisplay
+                balance={parseFloat(balances[tokenType]?.net || '0')}
+                estimatedCost={estimatedRestorationCost}
+                numberOfImages={numberOfImages}
+                tokenType={tokenType}
+              />
+            )}
+            {isAuthenticated && (
+              <button
+                onClick={() => setShowRecentProjects(true)}
+                className="btn-secondary"
+                style={{
+                  padding: '0.5rem 1rem',
+                  fontSize: '0.8125rem',
+                  fontWeight: 500,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.375rem'
+                }}
+                title="View recent projects"
+              >
+                <span>📚</span>
+                <span>Recents</span>
+              </button>
+            )}
+            <button
+              onClick={() => {
+                if (resetOnboarding) {
+                  resetOnboarding();
+                  // Force re-render of HelpOnboarding component
+                  setOnboardingKey(prev => prev + 1);
+                } else {
+                  // If reset function not ready, manually clear localStorage and reload
+                  try {
+                    localStorage.removeItem('sogni_restoration_onboarding_completed');
+                    localStorage.removeItem('sogni_restoration_onboarding_skipped');
+                    window.location.reload();
+                  } catch (error) {
+                    console.error('Failed to reset onboarding:', error);
+                  }
+                }
+              }}
+              title="Show Tutorial"
+              style={{
+                background: 'transparent',
+                border: '1px solid var(--color-border)',
+                borderRadius: '6px',
+                padding: '4px 8px',
+                cursor: 'pointer',
+                fontSize: '0.75rem',
+                color: 'var(--color-text-secondary)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'var(--color-bg-elevated)';
+                e.currentTarget.style.color = 'var(--color-text)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.color = 'var(--color-text-secondary)';
+              }}
+            >
+              <span>?</span>
+              <span style={{ fontSize: '0.7rem' }}>Help</span>
+            </button>
+            <AuthStatus />
+          </div>
         </div>
       </div>
     </header>
@@ -299,19 +552,42 @@ function App() {
                       {videoUrl ? '✨ Video Complete!' : isGeneratingVideo ? '🎬 Creating Video...' : selectedUrl ? '✨ Result Selected' : restoredUrls.length > 0 ? '🎨 Pick Your Favorite' : isRestoring ? '✨ Restoring Your Photo...' : 'Photo Uploaded'}
                     </h2>
                     <div className="flex flex-col gap-2 items-end">
-                      <button
-                        onClick={handleNewPhoto}
-                        className="btn-secondary"
-                        style={{
-                          padding: '0.5rem 1rem',
-                          fontSize: '0.8125rem',
-                          fontWeight: 500
-                        }}
-                      >
-                        ↻ new photo
-                      </button>
+                      <div className="flex gap-2">
+                        {restoredUrls.length > 1 && !isRestoring && (
+                          <button
+                            onClick={handleBulkDownload}
+                            className="btn-primary"
+                            style={{
+                              padding: '0.5rem 1rem',
+                              fontSize: '0.8125rem',
+                              fontWeight: 500,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.375rem'
+                            }}
+                            title={`Download all ${restoredUrls.length} images as ZIP`}
+                          >
+                            <span>📦</span>
+                            <span>Download All</span>
+                          </button>
+                        )}
+            <div className="flex gap-2">
+              <button
+                onClick={handleNewPhoto}
+                className="btn-secondary"
+                style={{
+                  padding: '0.5rem 1rem',
+                  fontSize: '0.8125rem',
+                  fontWeight: 500
+                }}
+              >
+                ↻ new photo
+              </button>
+            </div>
+                      </div>
                       {restoredUrls.length > 0 && !isRestoring && (
                         <button
+                          data-onboarding="restore-button"
                           onClick={handleRestore}
                           disabled={isRestoring || !imageData}
                           className="btn-secondary"
@@ -414,7 +690,7 @@ function App() {
                         </div>
                       </div>
                     ) : (
-                      <div className="flex-1 flex flex-col gap-4 overflow-hidden min-h-0">
+                      <div className="flex-1 flex flex-col gap-4 overflow-hidden min-h-0" data-onboarding="results">
                         <div className="flex-1 min-h-0 overflow-auto">
                           <ImagePreview
                             imageUrl={imageUrl}
@@ -563,7 +839,56 @@ function App() {
         isOpen={showOutOfCredits}
         onClose={() => setShowOutOfCredits(false)}
       />
+
+      {/* Network Status */}
+      <NetworkStatus
+        connectionState={connectionState}
+        isGenerating={isRestoring || isGeneratingVideo}
+        onRetryAll={() => {
+          if (isRestoring) {
+            handleRestore();
+          }
+        }}
+      />
+
+      {/* Friendly Error Modal */}
+      <FriendlyErrorModal
+        error={errorModal}
+        onClose={() => setErrorModal(null)}
+        onRetry={() => {
+          if (restoreError) {
+            handleRestore();
+          }
+        }}
+      />
+
+      {/* PWA Install Prompt */}
+      <PWAInstallPrompt />
+
+      {/* Help Onboarding - Only shows automatically on first visit when authenticated */}
+      {isAuthenticated && (
+        <HelpOnboarding 
+          key={onboardingKey}
+          onResetReady={(reset) => setResetOnboarding(() => reset)}
+        />
+      )}
+
+      {/* Recent Projects Modal */}
+      {isAuthenticated && showRecentProjects && (
+        <RecentProjects
+          sogniClient={getSogniClient()}
+          onClose={() => setShowRecentProjects(false)}
+        />
+      )}
     </div>
+  );
+}
+
+function App() {
+  return (
+    <ToastProvider>
+      <AppContent />
+    </ToastProvider>
   );
 }
 

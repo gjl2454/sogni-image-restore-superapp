@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { BeforeAfterCompare } from './BeforeAfterCompare';
+import { useFavorites } from '../hooks/useFavorites';
+import type { FavoriteImage } from '../services/favoritesService';
 
 // Match RestorationJob from useRestoration
 interface RestorationJob {
@@ -18,6 +20,8 @@ interface ResultsGridWithSlidersProps {
   originalImage?: string;
   onSelect: (url: string, jobIndex?: number) => void;
   onDownload?: (url: string) => void;
+  projectId?: string; // Optional project ID for favorites
+  modelName?: string; // Optional model name for favorites
 }
 
 export const ResultsGridWithSliders: React.FC<ResultsGridWithSlidersProps> = ({
@@ -25,9 +29,12 @@ export const ResultsGridWithSliders: React.FC<ResultsGridWithSlidersProps> = ({
   restorationJobs = [],
   originalImage,
   onSelect,
-  onDownload
+  onDownload,
+  projectId,
+  modelName
 }) => {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const { isFavorite, toggle } = useFavorites();
 
   // PHOTOBOOTH PATTERN: Use jobs if available (shows placeholders), otherwise fall back to results
   const itemsToDisplay = restorationJobs.length > 0 ? restorationJobs : results.map((url, idx) => ({
@@ -136,22 +143,69 @@ export const ResultsGridWithSliders: React.FC<ResultsGridWithSlidersProps> = ({
                 </div>
               ) : item.resultUrl ? (
                 /* Show completed result */
-                originalImage ? (
-                  <div className="w-full h-full cursor-pointer">
-                    <BeforeAfterCompare
-                      beforeImage={originalImage}
-                      afterImage={item.resultUrl}
+                <div className="relative w-full h-full">
+                  {originalImage ? (
+                    <div className="w-full h-full cursor-pointer">
+                      <BeforeAfterCompare
+                        beforeImage={originalImage}
+                        afterImage={item.resultUrl}
+                        onClick={() => onSelect(item.resultUrl!, item.index)}
+                      />
+                    </div>
+                  ) : (
+                    <img
+                      src={item.resultUrl}
+                      alt={`Result ${index + 1}`}
+                      className="w-full h-full object-cover cursor-pointer"
                       onClick={() => onSelect(item.resultUrl!, item.index)}
                     />
-                  </div>
-                ) : (
-                  <img
-                    src={item.resultUrl}
-                    alt={`Result ${index + 1}`}
-                    className="w-full h-full object-cover cursor-pointer"
-                    onClick={() => onSelect(item.resultUrl!, item.index)}
-                  />
-                )
+                  )}
+                  {/* Heart/Favorite Button */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      // Use item.id (unique per restoration) instead of index-based ID
+                      // This ensures each restoration has unique job IDs
+                      const jobId = item.id;
+                      const favoriteImage: FavoriteImage = {
+                        jobId,
+                        projectId: projectId || `temp-${Date.now()}`,
+                        url: item.resultUrl!,
+                        createdAt: Date.now(),
+                        modelName: modelName
+                      };
+                      toggle(favoriteImage);
+                    }}
+                    className="absolute top-2 right-2 z-10"
+                    style={{
+                      background: 'rgba(0, 0, 0, 0.5)',
+                      backdropFilter: 'blur(4px)',
+                      border: 'none',
+                      borderRadius: '50%',
+                      width: '32px',
+                      height: '32px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      opacity: hoveredIndex === index ? 1 : 0.7
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'rgba(0, 0, 0, 0.7)';
+                      e.currentTarget.style.transform = 'scale(1.1)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'rgba(0, 0, 0, 0.5)';
+                      e.currentTarget.style.transform = 'scale(1)';
+                    }}
+                    title={isFavorite(item.id) ? 'Remove from favorites' : 'Add to favorites'}
+                  >
+                    <span style={{ fontSize: '18px' }}>
+                      {isFavorite(item.id) ? '❤️' : '🤍'}
+                    </span>
+                  </button>
+                </div>
               ) : null}
             </div>
 

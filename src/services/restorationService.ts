@@ -167,13 +167,14 @@ export async function restorePhoto(
     let resolved = false;
     let timeoutId: NodeJS.Timeout;
     let noEventTimeoutId: NodeJS.Timeout;
-    const resultUrls: string[] = [];
+    const resultUrls: string[] = new Array(numberOfMedia).fill(null); // Pre-allocate array with nulls
     const expectedResults = numberOfMedia;
     let lastEventTime = Date.now();
     let eventCount = 0;
     const jobIdSet = new Set<string>(); // Track job IDs we've seen
     let lastETA: number | undefined = undefined; // Track last ETA received
     const jobMap = new Map<string, number>(); // CRITICAL: Map SDK job IDs to indices (photobooth pattern)
+    const urlSet = new Set<string>(); // Track URLs to prevent duplicates
 
     console.log('[RESTORE SERVICE] Setting up event listeners (following photobooth pattern)...');
 
@@ -275,7 +276,23 @@ export async function restorePhoto(
         }
         
         console.log(`[RESTORE SERVICE] Job ${event.jobId} (index ${jobIndex}) completed! URL: ${event.resultUrl}`);
-        resultUrls.push(event.resultUrl);
+        
+        // Check for duplicates
+        if (urlSet.has(event.resultUrl)) {
+          console.warn(`[RESTORE SERVICE] Duplicate URL detected for job ${event.jobId}, skipping`);
+          return;
+        }
+        
+        // Store URL at the correct index
+        if (jobIndex >= 0 && jobIndex < resultUrls.length) {
+          resultUrls[jobIndex] = event.resultUrl;
+          urlSet.add(event.resultUrl);
+        } else {
+          console.warn(`[RESTORE SERVICE] Invalid jobIndex ${jobIndex} for job ${event.jobId}, skipping`);
+          return;
+        }
+        
+        const completedCount = resultUrls.filter(url => url !== null).length;
         
         // Immediately notify about the new result with correct index
         if (onProgress) {
@@ -284,13 +301,13 @@ export async function restorePhoto(
             jobId: event.jobId,
             jobIndex, // CRITICAL: Pass jobIndex so UI updates correct placeholder
             resultUrl: event.resultUrl,
-            completedCount: resultUrls.length,
+            completedCount,
             totalCount: expectedResults
           });
         }
         
         // Check if all jobs are complete
-        if (resultUrls.length >= expectedResults && !resolved) {
+        if (completedCount >= expectedResults && !resolved) {
           resolved = true;
           if (timeoutId) clearTimeout(timeoutId);
           if (noEventTimeoutId) clearTimeout(noEventTimeoutId);
@@ -298,8 +315,14 @@ export async function restorePhoto(
           if (projectsApi && typeof projectsApi.off === 'function') {
             projectsApi.off('job', globalJobHandler);
           }
-          console.log('[RESTORE SERVICE] ✅ All results collected via global handler, resolving!');
-          resolve(resultUrls);
+          // Filter out null values and return only valid URLs
+          const finalUrls = resultUrls.filter(url => url !== null) as string[];
+          console.log('[RESTORE SERVICE] ✅ All results collected via global handler, resolving!', {
+            totalSlots: resultUrls.length,
+            validUrls: finalUrls.length,
+            urls: finalUrls
+          });
+          resolve(finalUrls);
         }
       }
     };
@@ -355,26 +378,38 @@ export async function restorePhoto(
       
       // CRITICAL: Immediately process each completed job as it arrives (photobooth pattern line 6225-6367)
       if (job.resultUrl && !resolved) {
-        // Check if we already have this URL to avoid duplicates
-        if (!resultUrls.includes(job.resultUrl)) {
-          resultUrls.push(job.resultUrl);
-          console.log(`[RESTORE SERVICE] ✓ Result ${resultUrls.length}/${expectedResults} completed (index ${jobIndex})`);
-          
-          // IMMEDIATELY notify UI about the new result with correct index
-          if (onProgress) {
-            onProgress({
-              type: 'completed',
-              jobId: job.id,
-              jobIndex, // CRITICAL: Pass jobIndex for correct placeholder
-              resultUrl: job.resultUrl,
-              completedCount: resultUrls.length,
-              totalCount: expectedResults
-            });
-          }
+        // Check for duplicates
+        if (urlSet.has(job.resultUrl)) {
+          console.warn(`[RESTORE SERVICE] Duplicate URL detected for job ${job.id}, skipping`);
+          return;
+        }
+        
+        // Store URL at the correct index
+        if (jobIndex >= 0 && jobIndex < resultUrls.length) {
+          resultUrls[jobIndex] = job.resultUrl;
+          urlSet.add(job.resultUrl);
+        } else {
+          console.warn(`[RESTORE SERVICE] Invalid jobIndex ${jobIndex} for job ${job.id}, skipping`);
+          return;
+        }
+        
+        const completedCount = resultUrls.filter(url => url !== null).length;
+        console.log(`[RESTORE SERVICE] ✓ Result ${completedCount}/${expectedResults} completed (index ${jobIndex})`);
+        
+        // IMMEDIATELY notify UI about the new result with correct index
+        if (onProgress) {
+          onProgress({
+            type: 'completed',
+            jobId: job.id,
+            jobIndex, // CRITICAL: Pass jobIndex for correct placeholder
+            resultUrl: job.resultUrl,
+            completedCount,
+            totalCount: expectedResults
+          });
         }
         
         // Once we have all expected results, resolve the promise
-        if (resultUrls.length >= expectedResults) {
+        if (completedCount >= expectedResults) {
           resolved = true;
           if (timeoutId) clearTimeout(timeoutId);
           if (noEventTimeoutId) clearTimeout(noEventTimeoutId);
@@ -382,8 +417,14 @@ export async function restorePhoto(
           if (projectsApi && typeof projectsApi.off === 'function') {
             projectsApi.off('job', globalJobHandler);
           }
-          console.log('[RESTORE SERVICE] ✅ All results collected via jobCompleted, resolving!');
-          resolve(resultUrls);
+          // Filter out null values and return only valid URLs
+          const finalUrls = resultUrls.filter(url => url !== null) as string[];
+          console.log('[RESTORE SERVICE] ✅ All results collected via jobCompleted, resolving!', {
+            totalSlots: resultUrls.length,
+            validUrls: finalUrls.length,
+            urls: finalUrls
+          });
+          resolve(finalUrls);
         }
       }
     };

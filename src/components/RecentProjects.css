@@ -1,0 +1,297 @@
+.recent-projects-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.recent-projects-container {
+  background: var(--color-bg);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 1200px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--color-border);
+}
+
+.recent-projects-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.recent-projects-tabs {
+  display: flex;
+  gap: 8px;
+}
+
+.recent-projects-tab {
+  background: transparent;
+  border: none;
+  padding: 8px 16px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.recent-projects-tab:hover {
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+}
+
+.recent-projects-tab.active {
+  color: var(--sogni-purple);
+  background: var(--color-bg);
+}
+
+.recent-projects-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: -20px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--sogni-purple);
+  border-radius: 2px 2px 0 0;
+}
+
+.recent-projects-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0;
+  background: var(--sogni-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.recent-projects-close {
+  background: transparent;
+  border: none;
+  font-size: 2rem;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.recent-projects-close:hover {
+  background: var(--color-bg-elevated);
+  color: var(--color-text);
+}
+
+.recent-projects-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.recent-projects-loading,
+.recent-projects-error,
+.recent-projects-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+  color: var(--color-text-secondary);
+}
+
+.recent-projects-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--color-border);
+  border-top-color: var(--sogni-purple);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.recent-projects-empty-subtitle {
+  font-size: 0.875rem;
+  margin-top: 8px;
+  opacity: 0.7;
+}
+
+.recent-project-card {
+  background: var(--color-bg-elevated);
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid var(--color-border);
+  transition: all 0.2s ease;
+}
+
+.recent-project-card.deleting {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.recent-project-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.recent-project-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.recent-project-status {
+  font-size: 0.75rem;
+  flex-shrink: 0;
+}
+
+.recent-project-model {
+  font-weight: 600;
+  color: var(--color-text);
+  font-size: 0.9375rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.recent-project-date {
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  margin-left: auto;
+}
+
+.recent-project-delete {
+  background: transparent;
+  border: none;
+  font-size: 1.125rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  opacity: 0.6;
+  flex-shrink: 0;
+  margin-left: 12px;
+}
+
+.recent-project-delete:hover {
+  opacity: 1;
+  background: rgba(244, 67, 54, 0.1);
+}
+
+.recent-project-delete:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.recent-project-jobs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-start;
+  min-height: 100px;
+  width: 100%;
+}
+
+.recent-project-jobs:empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+}
+
+.recent-project-jobs:empty::before {
+  content: "No images available";
+}
+
+.recent-projects-loading-more {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  color: var(--color-text-secondary);
+}
+
+.recent-projects-loading-more .recent-projects-spinner {
+  width: 32px;
+  height: 32px;
+  border-width: 2px;
+  margin-bottom: 12px;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .recent-projects-overlay {
+    padding: 0;
+  }
+
+  .recent-projects-container {
+    max-height: 100vh;
+    border-radius: 0;
+  }
+
+  .recent-projects-header {
+    padding: 16px 20px;
+  }
+
+  .recent-projects-title {
+    font-size: 1.25rem;
+  }
+
+  .recent-projects-content {
+    padding: 16px;
+    gap: 16px;
+  }
+
+  .recent-project-card {
+    padding: 16px;
+  }
+
+  .recent-project-info {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .recent-project-date {
+    margin-left: 0;
+    width: 100%;
+  }
+}

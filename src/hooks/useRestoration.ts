@@ -151,14 +151,44 @@ export function useRestoration(): UseRestorationResult {
       );
 
       console.log('[RESTORE HOOK] Restoration complete! Got URLs:', resultUrls);
+      
+      // CRITICAL: Remove duplicates from resultUrls
+      const uniqueResultUrls = Array.from(new Set(resultUrls));
+      console.log('[RESTORE HOOK] Unique URLs after deduplication:', {
+        originalCount: resultUrls.length,
+        uniqueCount: uniqueResultUrls.length,
+        urls: uniqueResultUrls
+      });
+      
       // Ensure all jobs are marked complete
+      // Use the job's existing resultUrl if it was set during progress updates
+      // Otherwise, assign from resultUrls array by index (fallback)
       setRestorationJobs(prev => prev.map((job, idx) => ({
         ...job,
         generating: false,
         progress: 1,
-        resultUrl: resultUrls[idx] || job.resultUrl
+        // Prefer the job's resultUrl if it was set during progress, otherwise use array index
+        resultUrl: job.resultUrl || uniqueResultUrls[idx] || null
       })));
-      setRestoredUrls(resultUrls);
+      
+      // Build restoredUrls from restorationJobs to ensure correct order and no duplicates
+      setRestorationJobs(currentJobs => {
+        const urlsFromJobs = currentJobs
+          .filter(job => job.resultUrl !== null)
+          .sort((a, b) => a.index - b.index) // Sort by index to maintain order
+          .map(job => job.resultUrl!)
+          .filter((url, idx, arr) => arr.indexOf(url) === idx); // Remove duplicates
+        
+        console.log('[RESTORE HOOK] Final URLs from jobs:', {
+          jobCount: currentJobs.length,
+          urlsWithResults: currentJobs.filter(j => j.resultUrl).length,
+          finalUrls: urlsFromJobs.length,
+          urls: urlsFromJobs
+        });
+        
+        setRestoredUrls(urlsFromJobs);
+        return currentJobs;
+      });
       setProgress(1);
       setEtaSeconds(0);
     } catch (err: any) {

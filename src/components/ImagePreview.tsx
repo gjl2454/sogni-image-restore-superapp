@@ -138,6 +138,7 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
             originalImage={originalUrl}
             onSelect={onSelectResult!}
             onDownload={onDownload}
+            modelName="Restoration"
           />
         </div>
       ) : !selectedUrl ? (

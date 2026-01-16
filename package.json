@@ -16,11 +16,13 @@
   "dependencies": {
     "@sogni-ai/sogni-client": "^4.0.0-alpha.49",
     "@types/uuid": "^10.0.0",
+    "jszip": "^3.10.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "uuid": "^11.1.0"
   },
   "devDependencies": {
+    "@types/jszip": "^3.4.1",
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
     "@typescript-eslint/eslint-plugin": "^8.50.0",

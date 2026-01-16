@@ -1,0 +1,92 @@
+/* Job Item Styles */
+.job-item {
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  background: var(--color-bg);
+  height: 200px;
+  width: 200px;
+  min-width: 150px;
+  max-width: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  scroll-snap-align: start;
+  border: 1px solid var(--color-border);
+}
+
+.job-item:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
+}
+
+.job-item-media {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  animation: jobItemFadeIn 0.3s ease;
+  pointer-events: none;
+}
+
+@keyframes jobItemFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.job-item-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  gap: 8px;
+}
+
+.job-item-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--color-border);
+  border-top-color: var(--sogni-purple);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.job-item-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px;
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+}
+
+.job-item-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  background: var(--color-bg-elevated);
+  gap: 8px;
+}
