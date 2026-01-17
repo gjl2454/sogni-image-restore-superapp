@@ -22,6 +22,7 @@ import HelpOnboarding from './components/shared/HelpOnboarding';
 import RecentProjects from './components/RecentProjects';
 import { downloadImage } from './utils/download';
 import { downloadImagesAsZip } from './utils/bulkDownload';
+import { formatCredits, CREDIT_COSTS } from './services/creditsService';
 import { trackRestorationStarted, trackRestorationCompleted, trackRestorationFailed, trackDownload, trackVideoGenerationStarted, trackVideoGenerationCompleted } from './services/analyticsService';
 
 function AppContent() {
@@ -391,14 +392,6 @@ function AppContent() {
             Sogni Restoration
           </a>
           <div className="flex items-center gap-3">
-            {isAuthenticated && balances && tokenType && (
-              <CreditsDisplay
-                balance={parseFloat(balances[tokenType]?.net || '0')}
-                estimatedCost={estimatedRestorationCost}
-                numberOfImages={numberOfImages}
-                tokenType={tokenType}
-              />
-            )}
             {isAuthenticated && (
               <button
                 onClick={() => setShowRecentProjects(true)}
@@ -409,12 +402,27 @@ function AppContent() {
                   fontWeight: 500,
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '0.375rem'
+                  gap: '0.5rem'
                 }}
-                title="View recent projects"
+                title="View gallery"
               >
-                <span>📚</span>
-                <span>Recents</span>
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  style={{ flexShrink: 0 }}
+                >
+                  <rect x="3" y="3" width="7" height="7"></rect>
+                  <rect x="14" y="3" width="7" height="7"></rect>
+                  <rect x="14" y="14" width="7" height="7"></rect>
+                  <rect x="3" y="14" width="7" height="7"></rect>
+                </svg>
+                <span>Gallery</span>
               </button>
             )}
             <button
@@ -443,9 +451,6 @@ function AppContent() {
                 cursor: 'pointer',
                 fontSize: '0.75rem',
                 color: 'var(--color-text-secondary)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
                 transition: 'all 0.2s ease'
               }}
               onMouseEnter={(e) => {
@@ -457,9 +462,102 @@ function AppContent() {
                 e.currentTarget.style.color = 'var(--color-text-secondary)';
               }}
             >
-              <span>?</span>
-              <span style={{ fontSize: '0.7rem' }}>Help</span>
+              Help
             </button>
+            {isAuthenticated && estimatedRestorationCost > 0 && numberOfImages > 0 && balances && tokenType && (
+              <div
+                style={{
+                  position: 'relative',
+                  background: 'var(--color-bg-elevated)',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: '6px',
+                  padding: '6px 12px',
+                  fontSize: '0.8125rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  whiteSpace: 'nowrap',
+                  height: '32px',
+                  cursor: 'default',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'var(--color-bg-secondary)';
+                  const tooltip = e.currentTarget.querySelector('.credits-tooltip') as HTMLElement;
+                  if (tooltip) tooltip.style.display = 'block';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'var(--color-bg-elevated)';
+                  const tooltip = e.currentTarget.querySelector('.credits-tooltip') as HTMLElement;
+                  if (tooltip) tooltip.style.display = 'none';
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.75rem', fontWeight: 500 }}>Est. cost:</span>
+                  <span style={{ fontWeight: '600', color: 'var(--color-text-primary)', fontSize: '0.8125rem' }}>
+                    {formatCredits(estimatedRestorationCost, true)}
+                  </span>
+                </div>
+                <div style={{ 
+                  width: '1px', 
+                  height: '16px', 
+                  background: 'var(--color-border)',
+                  flexShrink: 0
+                }}></div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.75rem', fontWeight: 500 }}>Remaining:</span>
+                  <span style={{ 
+                    fontWeight: '600', 
+                    color: parseFloat(balances[tokenType]?.net || '0') - estimatedRestorationCost >= 0 ? '#4CAF50' : '#f44336',
+                    fontSize: '0.8125rem'
+                  }}>
+                    {formatCredits(Math.max(0, parseFloat(balances[tokenType]?.net || '0') - estimatedRestorationCost), true)}
+                  </span>
+                </div>
+                
+                {/* Tooltip on hover */}
+                <div 
+                  className="credits-tooltip"
+                  style={{
+                    display: 'none',
+                    position: 'absolute',
+                    top: 'calc(100% + 8px)',
+                    right: 0,
+                    background: 'white',
+                    border: '1px solid var(--color-border)',
+                    borderRadius: '8px',
+                    padding: '12px',
+                    boxShadow: '0 4px 16px rgba(0, 0, 0, 0.12)',
+                    zIndex: 1000,
+                    minWidth: '200px',
+                    fontSize: '0.8125rem'
+                  }}
+                >
+                  <div style={{ 
+                    fontSize: '0.875rem', 
+                    fontWeight: '600', 
+                    color: 'var(--color-text-primary)',
+                    marginBottom: '10px',
+                    paddingBottom: '8px',
+                    borderBottom: '1px solid var(--color-border)'
+                  }}>
+                    Cost Breakdown
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px' }}>
+                      <span style={{ color: 'var(--color-text-secondary)' }}>Per image:</span>
+                      <span style={{ fontWeight: '600', color: 'var(--color-text-primary)' }}>
+                        {formatCredits(CREDIT_COSTS.RESTORATION_PER_IMAGE, true)} credits
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px' }}>
+                      <span style={{ color: 'var(--color-text-secondary)' }}>Images:</span>
+                      <span style={{ fontWeight: '600', color: 'var(--color-text-primary)' }}>{numberOfImages}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
             <AuthStatus />
           </div>
         </div>

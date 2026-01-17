@@ -133,7 +133,7 @@ export const UploadZone: React.FC<UploadZoneProps> = ({ onFileSelect, disabled, 
         }}>
           Number of restored images:
         </p>
-        <div className="flex gap-2 justify-center" data-onboarding="number-of-images">
+        <div className="flex gap-2 justify-center" data-onboarding="number-of-images" style={{ position: 'relative' }}>
           {[2, 4, 6].map((count) => (
             <button
               key={count}

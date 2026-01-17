@@ -94,84 +94,257 @@ export const AuthStatus: React.FC<AuthStatusProps> = ({ onPurchaseClick, onSignu
         </button>
       ) : (
         <div className="relative" ref={menuContainerRef}>
-          <div
+          <button
             onClick={() => setShowUserMenu(!showUserMenu)}
             style={{
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              padding: '4px',
+              borderRadius: '6px',
               display: 'flex',
               alignItems: 'center',
-              gap: '8px',
-              color: textColor,
-              fontSize: '14px',
-              fontWeight: '500',
-              cursor: 'pointer',
-              userSelect: 'none',
-              flexWrap: 'wrap'
+              justifyContent: 'center',
+              transition: 'background 0.2s ease'
             }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'var(--color-bg-secondary)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent';
+            }}
+            aria-label="User menu"
           >
-            <span style={{ color: textColor, fontWeight: '700' }}>
-              @{authMode === 'demo' ? 'Demo Mode' : user?.username || 'User'}
-            </span>
-            
-            {authMode !== 'demo' && balances && (
-              <>
-                <span style={{ color: textColor, opacity: 0.7 }}>|</span>
-                <span style={{ 
-                  color: (tokenType === 'spark' && hasPremiumSpark) ? '#00D5FF' : textColor,
-                  fontWeight: (tokenType === 'spark' && hasPremiumSpark) ? '600' : '500',
-                }}>
-                  {formatTokenAmount(currentBalance)} {tokenLabel}
-                </span>
-              </>
-            )}
-          </div>
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              style={{ color: 'var(--color-text-primary)' }}
+            >
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+          </button>
 
           {showUserMenu && (
             <div 
-              className="absolute top-full left-0 mt-2 bg-white rounded-lg shadow-xl p-4 min-w-[200px] z-50"
-              style={{ marginTop: '4px' }}
+              className="absolute top-full right-0 mt-2 z-50"
+              style={{ 
+                marginTop: '8px',
+                background: 'var(--color-bg-elevated)',
+                border: '1px solid var(--color-border)',
+                borderRadius: 'var(--radius-lg)',
+                padding: '16px',
+                minWidth: '240px',
+                boxShadow: 'var(--shadow-xl)'
+              }}
             >
               {authMode !== 'demo' && balances && (
                 <>
-                  <div className="mb-4">
-                    <div className="text-sm font-semibold text-gray-700 mb-2">Paying with</div>
-                    <div className="flex gap-2">
+                  {/* Credits Balance Display */}
+                  <div style={{ 
+                    textAlign: 'center',
+                    marginBottom: '16px',
+                    paddingBottom: '16px',
+                    borderBottom: '1px solid var(--color-border)'
+                  }}>
+                    <div style={{ 
+                      fontSize: '1.5rem', 
+                      fontWeight: '700', 
+                      background: 'var(--sogni-gradient)',
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                      backgroundClip: 'text',
+                      marginBottom: '4px'
+                    }}>
+                      {formatTokenAmount(currentBalance, 2)} {tokenLabel}
+                    </div>
+                    <div style={{
+                      fontSize: '0.75rem',
+                      color: 'var(--color-text-secondary)',
+                      fontWeight: 500
+                    }}>
+                      Available Credits
+                    </div>
+                  </div>
+                  
+                  <div style={{ marginBottom: '16px' }}>
+                    <div style={{ 
+                      fontSize: '0.8125rem', 
+                      fontWeight: '600', 
+                      color: 'var(--color-text-primary)',
+                      marginBottom: '10px'
+                    }}>
+                      Payment Method
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px' }}>
                       <button
                         onClick={() => switchPaymentMethod('sogni')}
-                        className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                          tokenType === 'sogni'
-                            ? 'bg-blue-500 text-white'
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                        }`}
+                        style={{
+                          flex: 1,
+                          padding: '10px 12px',
+                          borderRadius: 'var(--radius-md)',
+                          fontSize: '0.8125rem',
+                          fontWeight: '600',
+                          transition: 'all var(--transition-base)',
+                          cursor: 'pointer',
+                          border: tokenType === 'sogni' ? '2px solid var(--color-light-blue)' : '1px solid var(--color-border)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px',
+                          position: 'relative',
+                          ...(tokenType === 'sogni'
+                            ? {
+                                background: 'var(--sogni-gradient)',
+                                color: 'white',
+                                boxShadow: '0 0 0 2px rgba(180, 205, 237, 0.4), 0 4px 12px rgba(52, 73, 102, 0.2)'
+                              }
+                            : {
+                                background: 'var(--color-bg)',
+                                color: 'var(--color-text-secondary)'
+                              })
+                        }}
+                        onMouseEnter={(e) => {
+                          if (tokenType !== 'sogni') {
+                            e.currentTarget.style.background = 'var(--color-bg-secondary)';
+                            e.currentTarget.style.borderColor = 'var(--color-border-hover)';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (tokenType !== 'sogni') {
+                            e.currentTarget.style.background = 'var(--color-bg)';
+                            e.currentTarget.style.borderColor = 'var(--color-border)';
+                          }
+                        }}
                       >
-                        SOGNI
+                        {tokenType === 'sogni' && (
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                          </svg>
+                        )}
+                        <span>SOGNI</span>
                       </button>
                       <button
                         onClick={() => switchPaymentMethod('spark')}
-                        className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                          tokenType === 'spark'
-                            ? 'bg-red-500 text-white'
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                        }`}
+                        style={{
+                          flex: 1,
+                          padding: '10px 12px',
+                          borderRadius: 'var(--radius-md)',
+                          fontSize: '0.8125rem',
+                          fontWeight: '600',
+                          transition: 'all var(--transition-base)',
+                          cursor: 'pointer',
+                          border: tokenType === 'spark' ? '2px solid var(--color-light-blue)' : '1px solid var(--color-border)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px',
+                          position: 'relative',
+                          ...(tokenType === 'spark'
+                            ? {
+                                background: 'var(--color-blue-gray)',
+                                color: 'white',
+                                boxShadow: '0 0 0 2px rgba(180, 205, 237, 0.4), 0 4px 12px rgba(52, 73, 102, 0.2)'
+                              }
+                            : {
+                                background: 'var(--color-bg)',
+                                color: 'var(--color-text-secondary)'
+                              })
+                        }}
+                        onMouseEnter={(e) => {
+                          if (tokenType !== 'spark') {
+                            e.currentTarget.style.background = 'var(--color-bg-secondary)';
+                            e.currentTarget.style.borderColor = 'var(--color-border-hover)';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (tokenType !== 'spark') {
+                            e.currentTarget.style.background = 'var(--color-bg)';
+                            e.currentTarget.style.borderColor = 'var(--color-border)';
+                          }
+                        }}
                       >
-                        Spark
+                        {tokenType === 'spark' && (
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                          </svg>
+                        )}
+                        <span>Spark</span>
                       </button>
                     </div>
                   </div>
                   
                   <button
                     onClick={handleBuyCredits}
-                    className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 text-sm font-medium mb-2"
+                    style={{
+                      width: '100%',
+                      background: 'var(--color-blue-gray)',
+                      color: 'white',
+                      padding: '10px 16px',
+                      borderRadius: 'var(--radius-md)',
+                      fontSize: '0.875rem',
+                      fontWeight: '600',
+                      marginBottom: '12px',
+                      border: 'none',
+                      cursor: 'pointer',
+                      transition: 'all var(--transition-base)',
+                      boxShadow: 'var(--shadow-sm)'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'var(--color-dark-navy)';
+                      e.currentTarget.style.transform = 'translateY(-1px)';
+                      e.currentTarget.style.boxShadow = 'var(--shadow-md)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'var(--color-blue-gray)';
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
+                    }}
                   >
                     Buy Credits
                   </button>
                 </>
               )}
 
-              <div className="pt-2 border-t border-gray-200">
+              <div style={{ 
+                paddingTop: '12px', 
+                borderTop: '1px solid var(--color-border)'
+              }}>
                 <button
                   onClick={handleLogout}
                   disabled={isLoading}
-                  className="w-full text-gray-500 text-sm hover:text-gray-700 text-center"
+                  style={{
+                    width: '100%',
+                    color: 'var(--color-text-secondary)',
+                    fontSize: '0.8125rem',
+                    fontWeight: '500',
+                    textAlign: 'center',
+                    background: 'transparent',
+                    border: 'none',
+                    cursor: isLoading ? 'not-allowed' : 'pointer',
+                    padding: '6px',
+                    borderRadius: 'var(--radius-sm)',
+                    transition: 'all var(--transition-base)',
+                    opacity: isLoading ? 0.5 : 1
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isLoading) {
+                      e.currentTarget.style.color = 'var(--color-text-primary)';
+                      e.currentTarget.style.background = 'var(--color-bg)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isLoading) {
+                      e.currentTarget.style.color = 'var(--color-text-secondary)';
+                      e.currentTarget.style.background = 'transparent';
+                    }
+                  }}
                 >
                   {isLoading ? 'Logging out...' : 'Logout'}
                 </button>

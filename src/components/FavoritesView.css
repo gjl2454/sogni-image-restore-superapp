@@ -46,7 +46,13 @@
   cursor: pointer;
   transition: all 0.2s ease;
   z-index: 10;
-  font-size: 18px;
+  padding: 0;
+}
+
+.favorite-item-heart svg {
+  display: block;
+  width: 18px;
+  height: 18px;
 }
 
 .favorite-item-heart:hover {
