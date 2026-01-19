@@ -1180,32 +1180,40 @@ const HelpOnboarding: React.FC<HelpOnboardingProps> = ({ onComplete, onResetRead
       }
     }
     
-    // ABSOLUTE FINAL CHECK FOR STEP 2: Right before returning, verify no overlap
+    // ABSOLUTE FINAL CHECK FOR STEP 2: Right before returning, ALWAYS position below
     // This is the last chance to prevent covering the drag and drop box
-    if (stepId === 'upload') {
-      // Calculate final tooltip bounds
-      let checkTop = boundedTop;
-      let checkBottom = boundedTop + finalTooltipHeight;
-      let checkLeft = finalLeft - actualTooltipWidth / 2;
-      let checkRight = finalLeft + actualTooltipWidth / 2;
+    // For step 2, we ALWAYS position below, no exceptions
+    // Get FRESH element bounds to ensure accuracy
+    if (stepId === 'upload' && targetElement) {
+      // Get the absolute latest element bounds - this is critical for resize
+      const freshRect = targetElement.getBoundingClientRect();
       
-      if (transform.includes('translate(-100%')) {
-        checkRight = finalLeft;
-        checkLeft = finalLeft - actualTooltipWidth;
-        checkTop = boundedTop - finalTooltipHeight / 2;
-        checkBottom = boundedTop + finalTooltipHeight / 2;
+      // FORCE position below with very large spacing - no matter what
+      // This overrides ANY other positioning logic
+      const guaranteedSpacing = 100; // Very large guaranteed spacing to ensure no overlap
+      boundedTop = freshRect.bottom + guaranteedSpacing;
+      finalLeft = freshRect.left + freshRect.width / 2;
+      transform = 'translateX(-50%)';
+      
+      // Recalculate tooltip bounds to verify absolutely no overlap
+      const verifyTop = boundedTop;
+      const verifyBottom = boundedTop + finalTooltipHeight;
+      const verifyLeft = finalLeft - actualTooltipWidth / 2;
+      const verifyRight = finalLeft + actualTooltipWidth / 2;
+      
+      // Check if it would still overlap with a very strict buffer
+      const verifyBuffer = 80; // Very strict buffer
+      const wouldOverlapH = !(verifyRight < freshRect.left - verifyBuffer || verifyLeft > freshRect.right + verifyBuffer);
+      const wouldOverlapV = !(verifyBottom < freshRect.top - verifyBuffer || verifyTop > freshRect.bottom + verifyBuffer);
+      
+      // If somehow still overlapping, add even more spacing
+      if (wouldOverlapH || wouldOverlapV) {
+        boundedTop = freshRect.bottom + guaranteedSpacing + 60;
       }
       
-      // Check for overlap with a very strict buffer
-      const finalStrictBuffer = 60;
-      const hasOverlap = !(checkRight < rect.left - finalStrictBuffer || checkLeft > rect.right + finalStrictBuffer) ||
-                        !(checkBottom < rect.top - finalStrictBuffer || checkTop > rect.bottom + finalStrictBuffer);
-      
-      // If ANY overlap, FORCE position below - this is non-negotiable
-      if (hasOverlap) {
-        boundedTop = rect.bottom + finalStrictBuffer;
-        finalLeft = rect.left + rect.width / 2;
-        transform = 'translateX(-50%)';
+      // Final absolute check - if tooltip top is less than element bottom, force it down
+      if (boundedTop <= freshRect.bottom) {
+        boundedTop = freshRect.bottom + guaranteedSpacing;
       }
     }
     
