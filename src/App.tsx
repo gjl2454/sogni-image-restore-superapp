@@ -566,7 +566,7 @@ function AppContent() {
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-h-0 overflow-hidden main-content-scroll">
-        <div className="flex flex-col items-center flex-1 min-h-0 px-4 py-6 lg:py-8 overflow-hidden">
+        <div className="flex flex-col items-center flex-1 min-h-0 px-4 py-4 lg:py-5 overflow-hidden">
           {!isAuthenticated ? (
             <div className="w-full flex flex-col items-center overflow-y-auto min-h-0">
               {/* Hero Section */}
@@ -640,49 +640,38 @@ function AppContent() {
                   )}
                 </div>
               ) : (
-                <div className="fade-in flex-1 min-h-0 flex flex-col gap-2 overflow-hidden">
-                  {/* Header Row */}
-                  <div className="flex justify-between items-center flex-shrink-0">
-                    <h2 className="text-xl font-bold" style={{ 
+                <div className="fade-in flex-1 min-h-0 flex flex-col gap-1.5 overflow-hidden">
+                  {/* Header Row with Buttons */}
+                  <div className="flex justify-between items-start gap-3 flex-shrink-0">
+                    <h2 className="text-lg font-bold flex-shrink-0" style={{
                       color: 'var(--color-text-primary)',
-                      letterSpacing: '-0.02em'
+                      letterSpacing: '-0.02em',
+                      paddingTop: '0.375rem'
                     }}>
                       {videoUrl ? '✨ Video Complete!' : isGeneratingVideo ? '🎬 Creating Video...' : selectedUrl ? '✨ Result Selected' : restoredUrls.length > 0 ? '🎨 Pick Your Favorite' : isRestoring ? '✨ Restoring Your Photo...' : 'Photo Uploaded'}
                     </h2>
-                    <div className="flex flex-col gap-2 items-end">
-                      <div className="flex gap-2">
-                        {restoredUrls.length > 1 && !isRestoring && (
-                          <button
-                            onClick={handleBulkDownload}
-                            className="btn-primary"
-                            style={{
-                              padding: '0.5rem 1rem',
-                              fontSize: '0.8125rem',
-                              fontWeight: 500,
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '0.375rem'
-                            }}
-                            title={`Download all ${restoredUrls.length} images as ZIP`}
-                          >
-                            <span>📦</span>
-                            <span>Download All</span>
-                          </button>
-                        )}
-            <div className="flex gap-2">
-              <button
-                onClick={handleNewPhoto}
-                className="btn-secondary"
-                style={{
-                  padding: '0.5rem 1rem',
-                  fontSize: '0.8125rem',
-                  fontWeight: 500
-                }}
-              >
-                ↻ new photo
-              </button>
-            </div>
-                      </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex gap-2 items-center flex-shrink-0">
+                      {restoredUrls.length > 1 && !isRestoring && (
+                        <button
+                          onClick={handleBulkDownload}
+                          className="btn-primary"
+                          style={{
+                            padding: '0.5rem 1rem',
+                            fontSize: '0.8125rem',
+                            fontWeight: 500,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.375rem'
+                          }}
+                          title={`Download all ${restoredUrls.length} images as ZIP`}
+                        >
+                          <span>📦</span>
+                          <span>Download All</span>
+                        </button>
+                      )}
+
                       {restoredUrls.length > 0 && !isRestoring && (
                         <button
                           data-onboarding="restore-button"
@@ -696,26 +685,40 @@ function AppContent() {
                             opacity: (isRestoring || !imageData) ? 0.5 : 1,
                             cursor: (isRestoring || !imageData) ? 'not-allowed' : 'pointer'
                           }}
+                          title="Generate new variations"
                         >
-                          let's try again!
+                          ↻ Try Again
                         </button>
                       )}
+
+                      <button
+                        onClick={handleNewPhoto}
+                        className="btn-secondary"
+                        style={{
+                          padding: '0.5rem 1rem',
+                          fontSize: '0.8125rem',
+                          fontWeight: 500
+                        }}
+                        title="Upload a different photo"
+                      >
+                        ← New Photo
+                      </button>
                     </div>
                   </div>
 
                   {/* Progress Indicator - Only show for video generation */}
                   {isGeneratingVideo && (
-                    <div className="card-premium p-4 flex-shrink-0">
-                      <ProgressIndicator 
-                        progress={videoProgress} 
-                        message="Bringing photo to life..." 
+                    <div className="card-premium p-3 flex-shrink-0">
+                      <ProgressIndicator
+                        progress={videoProgress}
+                        message="Bringing photo to life..."
                       />
                     </div>
                   )}
 
                   {/* Error Messages */}
                   {restoreError && restoreError !== 'INSUFFICIENT_CREDITS' && (
-                    <div className="card-premium px-5 py-3 flex-shrink-0" style={{
+                    <div className="card-premium px-4 py-2.5 flex-shrink-0" style={{
                       background: 'rgba(239, 68, 68, 0.05)',
                       borderColor: 'rgba(239, 68, 68, 0.2)',
                       color: '#dc2626'
@@ -723,7 +726,7 @@ function AppContent() {
                       <div className="text-sm">{restoreError}</div>
                       <button
                         onClick={handleRestore}
-                        className="mt-2 font-medium text-sm gradient-accent underline"
+                        className="mt-1.5 font-medium text-sm gradient-accent underline"
                         style={{ cursor: 'pointer' }}
                       >
                         Try again
@@ -732,7 +735,7 @@ function AppContent() {
                   )}
 
                   {videoError && videoError !== 'INSUFFICIENT_CREDITS' && (
-                    <div className="card-premium px-5 py-3 flex-shrink-0 text-sm" style={{
+                    <div className="card-premium px-4 py-2.5 flex-shrink-0 text-sm" style={{
                       background: 'rgba(239, 68, 68, 0.05)',
                       borderColor: 'rgba(239, 68, 68, 0.2)',
                       color: '#dc2626'
@@ -742,7 +745,7 @@ function AppContent() {
                   )}
 
                   {/* Content Area */}
-                  <div className="flex-1 min-h-0 card-premium p-4 overflow-hidden flex flex-col">
+                  <div className="flex-1 min-h-0 card-premium p-3 overflow-hidden flex flex-col">
                     {videoUrl ? (
                       <div className="flex-1 flex flex-col items-center gap-4 min-h-0" style={{ justifyContent: 'center' }}>
                         <video 

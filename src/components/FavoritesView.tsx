@@ -1,6 +1,7 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useFavorites } from '../hooks/useFavorites';
 import { useMediaUrl } from '../hooks/useMediaUrl';
+import { getCachedFavorite, createFavoriteBlobUrl } from '../utils/favoritesDB';
 import type { SogniClient } from '@sogni-ai/sogni-client';
 import type { FavoriteImage } from '../services/favoritesService';
 import './FavoritesView.css';
@@ -14,9 +15,9 @@ const FavoritesView: React.FC<FavoritesViewProps> = ({ sogniClient, onViewImage 
   const { favorites, isFavorite, toggle, refresh } = useFavorites();
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 
-  const handleToggleFavorite = useCallback((favorite: FavoriteImage, e: React.MouseEvent) => {
+  const handleToggleFavorite = useCallback(async (favorite: FavoriteImage, e: React.MouseEvent) => {
     e.stopPropagation();
-    toggle(favorite);
+    await toggle(favorite);
   }, [toggle]);
 
   const handleView = useCallback((favorite: FavoriteImage) => {
@@ -88,17 +89,56 @@ function FavoriteItem({
   onView,
   isFavorite
 }: FavoriteItemProps) {
-  // Try to get fresh URL if needed (for S3 signed URLs that may have expired)
-  const { url, loading } = useMediaUrl({
-    projectId: favorite.projectId,
-    jobId: favorite.jobId,
-    type: 'image',
-    sogniClient,
-    enabled: !!sogniClient && !!favorite.projectId && !!favorite.jobId
-  });
+  const [displayUrl, setDisplayUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [blobUrl, setBlobUrl] = useState<string | null>(null);
 
-  // Use cached URL from favorite if available, otherwise use fetched URL
-  const displayUrl = url || favorite.url;
+  // Load cached image from IndexedDB on mount
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadCachedImage() {
+      try {
+        const cached = await getCachedFavorite(favorite.jobId);
+        if (cached && mounted) {
+          const url = createFavoriteBlobUrl(cached);
+          setBlobUrl(url);
+          setDisplayUrl(url);
+          setLoading(false);
+        } else {
+          // No cached image, fall back to original URL
+          setDisplayUrl(favorite.url);
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error('[FavoriteItem] Failed to load cached image:', error);
+        // Fall back to original URL
+        if (mounted) {
+          setDisplayUrl(favorite.url);
+          setLoading(false);
+        }
+      }
+    }
+
+    loadCachedImage();
+
+    return () => {
+      mounted = false;
+      // Clean up blob URL
+      if (blobUrl) {
+        URL.revokeObjectURL(blobUrl);
+      }
+    };
+  }, [favorite.jobId, favorite.url]);
+
+  // Clean up blob URL when component unmounts
+  useEffect(() => {
+    return () => {
+      if (blobUrl) {
+        URL.revokeObjectURL(blobUrl);
+      }
+    };
+  }, [blobUrl]);
 
   return (
     <div

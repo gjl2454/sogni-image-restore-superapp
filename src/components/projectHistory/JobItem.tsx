@@ -4,6 +4,7 @@ import type { ArchiveJob } from '../../types/projectHistory';
 import { useLazyLoad } from '../../hooks/useLazyLoad';
 import { useMediaUrl } from '../../hooks/useMediaUrl';
 import { useFavorites } from '../../hooks/useFavorites';
+import { getExpiryInfo } from '../../utils/expiryUtils';
 import type { FavoriteImage } from '../../services/favoritesService';
 import './JobItem.css';
 
@@ -35,6 +36,11 @@ function JobItem({ job, aspect, sogniClient, onView, onHideJob, modelName }: Job
 
   const { isFavorite, toggle, favorites } = useFavorites();
   const [isHovered, setIsHovered] = useState(false);
+
+  // Calculate expiry info
+  const expiryInfo = useMemo(() => {
+    return getExpiryInfo(job.createdAt);
+  }, [job.createdAt]);
   
   // Normalize URL for comparison (remove query parameters, etc.)
   const normalizeUrl = (url: string): string => {
@@ -149,14 +155,38 @@ function JobItem({ job, aspect, sogniClient, onView, onHideJob, modelName }: Job
               console.log('[JobItem] Image loaded successfully:', job.id);
             }}
           />
+          {/* Expiry Warning Badge */}
+          {expiryInfo.isExpiringSoon && !isFavorited && (
+            <div
+              style={{
+                position: 'absolute',
+                top: '8px',
+                left: '8px',
+                background: 'rgba(255, 152, 0, 0.95)',
+                color: 'white',
+                padding: '4px 8px',
+                borderRadius: '4px',
+                fontSize: '0.7rem',
+                fontWeight: '600',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                zIndex: 9
+              }}
+              title="Download or favorite this image before it expires"
+            >
+              <span>⏱</span>
+              <span>{expiryInfo.formattedTimeRemaining}</span>
+            </div>
+          )}
           {/* Heart/Favorite Button */}
           {(isHovered || isFavorited) && (
             <button
-              onClick={(e) => {
+              onClick={async (e) => {
                 e.stopPropagation();
                 // Normalize URL for comparison
                 const normalizedUrl = url ? normalizeUrl(url) : '';
-                
+
                 // If this job is favorited by URL (not jobId), find the existing favorite to update it
                 let favoriteToToggle: FavoriteImage;
                 if (!isFavorited && url) {
@@ -177,7 +207,8 @@ function JobItem({ job, aspect, sogniClient, onView, onHideJob, modelName }: Job
                       jobId: job.id,
                       projectId: job.projectId,
                       url: url,
-                      createdAt: Date.now()
+                      createdAt: Date.now(),
+                      modelName
                     };
                   }
                 } else {
@@ -194,10 +225,11 @@ function JobItem({ job, aspect, sogniClient, onView, onHideJob, modelName }: Job
                     jobId: job.id,
                     projectId: job.projectId,
                     url: url,
-                    createdAt: Date.now()
+                    createdAt: job.createdAt || Date.now(),
+                    modelName
                   };
                 }
-                toggle(favoriteToToggle);
+                await toggle(favoriteToToggle);
               }}
               className="job-item-favorite"
               style={{

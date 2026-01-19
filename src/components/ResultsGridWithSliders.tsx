@@ -57,45 +57,45 @@ export const ResultsGridWithSliders: React.FC<ResultsGridWithSlidersProps> = ({
   };
 
   return (
-    <div className="w-full h-full flex flex-col gap-2">
-      {/* Header - more compact */}
+    <div className="w-full h-full flex flex-col gap-1.5">
+      {/* Header - ultra compact */}
       <div className="text-center flex-shrink-0">
         <p className="font-bold" style={{
           background: 'var(--sogni-gradient)',
           WebkitBackgroundClip: 'text',
           WebkitTextFillColor: 'transparent',
           backgroundClip: 'text',
-          fontSize: '0.9375rem',
-          marginBottom: '0.25rem',
+          fontSize: '0.875rem',
+          marginBottom: '0.125rem',
           letterSpacing: '-0.01em'
         }}>
           ✨ {restorationJobs.some(j => j.generating) ? 'Restoring Your Photos' : 'Review Your Results'}
         </p>
         <p style={{
           color: 'var(--color-text-secondary)',
-          fontSize: '0.75rem',
+          fontSize: '0.6875rem',
           fontWeight: 500
         }}>
-          {restorationJobs.some(j => j.generating) 
+          {restorationJobs.some(j => j.generating)
             ? 'Each restoration appears as it completes'
-            : 'Compare before and after for each restoration'
+            : 'Drag slider to compare before and after'
           }
         </p>
       </div>
 
-      {/* Grid of Results/Placeholders - compact layout to fit all without scrolling */}
-      <div className={`grid ${getGridCols()} gap-2 flex-shrink-0 px-1`}>
+      {/* Grid of Results/Placeholders - ultra compact to fit without scrolling */}
+      <div className={`grid ${getGridCols()} gap-1.5 flex-shrink-0`}>
         {itemsToDisplay.map((item, index) => (
           <div
             key={item.id}
-            className="flex flex-col gap-1 fade-in"
+            className="flex flex-col gap-0.5 fade-in"
             style={{
               animationDelay: `${index * 100}ms`,
               animationFillMode: 'both',
               opacity: 0
             }}
           >
-            {/* Before/After Slider Container or Loading Placeholder - smaller and squarer */}
+            {/* Before/After Slider Container or Loading Placeholder - compact and square */}
             <div
               className="relative rounded-md overflow-hidden transition-all duration-300"
               onMouseEnter={() => !item.generating ? setHoveredIndex(index) : null}
@@ -104,16 +104,16 @@ export const ResultsGridWithSliders: React.FC<ResultsGridWithSlidersProps> = ({
                 aspectRatio: '1 / 1',
                 background: item.generating ? 'linear-gradient(135deg, rgba(180, 205, 237, 0.1), rgba(194, 148, 255, 0.1))' : 'var(--color-bg-elevated)',
                 boxShadow: hoveredIndex === index && !item.generating
-                  ? '0 8px 24px rgba(180, 205, 237, 0.4), 0 0 0 2px rgba(180, 205, 237, 0.3)'
-                  : '0 2px 8px rgba(0, 0, 0, 0.06), 0 0 0 1px var(--color-border-light)',
-                transform: hoveredIndex === index && !item.generating ? 'translateY(-2px) scale(1.02)' : 'translateY(0) scale(1)',
+                  ? '0 6px 20px rgba(180, 205, 237, 0.35), 0 0 0 2px rgba(180, 205, 237, 0.3)'
+                  : '0 1px 4px rgba(0, 0, 0, 0.05), 0 0 0 1px var(--color-border-light)',
+                transform: hoveredIndex === index && !item.generating ? 'translateY(-1px) scale(1.015)' : 'translateY(0) scale(1)',
                 transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                 border: '1px solid var(--color-border-light)'
               }}
             >
               {item.generating ? (
-                /* PHOTOBOOTH PATTERN: Loading placeholder with progress and ETA - more compact */
-                <div className="w-full h-full flex flex-col items-center justify-center p-3">
+                /* PHOTOBOOTH PATTERN: Loading placeholder with progress and ETA - ultra compact */
+                <div className="w-full h-full flex flex-col items-center justify-center p-2">
                   <div className="text-2xl mb-2 animate-pulse">✨</div>
                   <div className="w-full max-w-[85%]">
                     <div className="w-full rounded-full h-1.5 overflow-hidden mb-1" style={{
@@ -160,7 +160,7 @@ export const ResultsGridWithSliders: React.FC<ResultsGridWithSlidersProps> = ({
                       onClick={() => onSelect(item.resultUrl!, item.index)}
                     />
                   )}
-                  {/* Heart/Favorite Button */}
+                  {/* Heart/Favorite Button - smaller */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -175,14 +175,14 @@ export const ResultsGridWithSliders: React.FC<ResultsGridWithSlidersProps> = ({
                       };
                       toggle(favoriteImage);
                     }}
-                    className="absolute top-2 right-2 z-10"
+                    className="absolute top-1.5 right-1.5 z-10"
                     style={{
                       background: 'rgba(0, 0, 0, 0.5)',
                       backdropFilter: 'blur(4px)',
                       border: 'none',
                       borderRadius: '50%',
-                      width: '32px',
-                      height: '32px',
+                      width: '28px',
+                      height: '28px',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -202,8 +202,8 @@ export const ResultsGridWithSliders: React.FC<ResultsGridWithSlidersProps> = ({
                   >
                     {isFavorite(item.id) ? (
                       <svg
-                        width="18"
-                        height="18"
+                        width="16"
+                        height="16"
                         viewBox="0 0 24 24"
                         fill="none"
                         stroke="currentColor"
@@ -216,8 +216,8 @@ export const ResultsGridWithSliders: React.FC<ResultsGridWithSlidersProps> = ({
                       </svg>
                     ) : (
                       <svg
-                        width="18"
-                        height="18"
+                        width="16"
+                        height="16"
                         viewBox="0 0 24 24"
                         fill="none"
                         stroke="currentColor"
@@ -234,15 +234,16 @@ export const ResultsGridWithSliders: React.FC<ResultsGridWithSlidersProps> = ({
               ) : null}
             </div>
 
-            {/* Result Number Badge and Action Button - more compact */}
+            {/* Result Number Badge and Action Button - ultra compact */}
             <div className="flex items-center justify-between flex-shrink-0">
               <span
-                className="px-2 py-0.5 rounded-full font-semibold"
+                className="px-1.5 py-0.5 rounded-full font-semibold"
                 style={{
                   background: item.generating ? 'rgba(180, 205, 237, 0.1)' : 'var(--sogni-gradient-subtle)',
                   color: 'var(--color-text-secondary)',
                   border: '1px solid var(--color-border)',
-                  fontSize: '0.625rem'
+                  fontSize: '0.625rem',
+                  lineHeight: '1'
                 }}
               >
                 {item.generating ? '...' : `#${index + 1}`}
@@ -257,7 +258,8 @@ export const ResultsGridWithSliders: React.FC<ResultsGridWithSlidersProps> = ({
                   style={{
                     padding: '0.25rem 0.5rem',
                     fontSize: '0.625rem',
-                    fontWeight: 500
+                    fontWeight: 500,
+                    lineHeight: '1'
                   }}
                 >
                   ↓

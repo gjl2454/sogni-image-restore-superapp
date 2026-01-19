@@ -23,8 +23,8 @@ export function useFavorites() {
   }, [favorites]);
 
   // Add to favorites
-  const add = useCallback((image: FavoriteImage): boolean => {
-    const success = addFavorite(image);
+  const add = useCallback(async (image: FavoriteImage): Promise<boolean> => {
+    const success = await addFavorite(image);
     if (success) {
       refresh();
     }
@@ -32,8 +32,8 @@ export function useFavorites() {
   }, [refresh]);
 
   // Remove from favorites
-  const remove = useCallback((jobId: string): boolean => {
-    const success = removeFavorite(jobId);
+  const remove = useCallback(async (jobId: string): Promise<boolean> => {
+    const success = await removeFavorite(jobId);
     if (success) {
       refresh();
     }
@@ -41,8 +41,8 @@ export function useFavorites() {
   }, [refresh]);
 
   // Toggle favorite status
-  const toggle = useCallback((image: FavoriteImage): boolean => {
-    const success = toggleFavoriteService(image);
+  const toggle = useCallback(async (image: FavoriteImage): Promise<boolean> => {
+    const success = await toggleFavoriteService(image);
     refresh();
     return success;
   }, [refresh]);

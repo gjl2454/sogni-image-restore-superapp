@@ -104,19 +104,19 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
 
   return (
     <>
-    <div className="h-full flex flex-col gap-4 overflow-hidden">
+    <div className="h-full flex flex-col gap-2 overflow-hidden">
       {/* Show progress indicator for ongoing restoration ABOVE the results */}
       {isRestoring && hasResults && (
-        <div className="flex-shrink-0 px-2 py-2 rounded-lg" style={{
+        <div className="flex-shrink-0 px-2 py-1.5 rounded-lg" style={{
           background: 'linear-gradient(135deg, rgba(180, 205, 237, 0.1), rgba(194, 148, 255, 0.1))',
           border: '1px solid rgba(180, 205, 237, 0.2)'
         }}>
           <div className="flex items-center justify-between text-sm" style={{ color: 'var(--color-text-primary)' }}>
-            <span className="font-medium">
+            <span className="font-medium" style={{ fontSize: '0.8125rem' }}>
               {completedCount}/{totalCount} restored
             </span>
-            <span className="gradient-accent font-semibold">
-              {etaSeconds !== undefined && etaSeconds > 0 
+            <span className="gradient-accent font-semibold" style={{ fontSize: '0.8125rem' }}>
+              {etaSeconds !== undefined && etaSeconds > 0
                 ? (() => {
                     if (etaSeconds < 60) return `${Math.ceil(etaSeconds)}s remaining`;
                     const minutes = Math.floor(etaSeconds / 60);
