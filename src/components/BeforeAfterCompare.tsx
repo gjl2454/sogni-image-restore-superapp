@@ -132,12 +132,13 @@ export const BeforeAfterCompare: React.FC<BeforeAfterCompareProps> = ({
       />
 
       {/* Before Image (Clipped) - overlay */}
-      <div 
-        className="absolute inset-0 overflow-hidden flex items-center justify-center"
-        style={{ 
+      <div
+        className="absolute inset-0 flex items-center justify-center"
+        style={{
           clipPath: `inset(0 ${100 - sliderPosition}% 0 0)`,
           zIndex: 2,
-          transition: (isDragging || isHovering) ? 'none' : 'clip-path 0.3s ease'
+          transition: (isDragging || isHovering) ? 'none' : 'clip-path 0.3s ease',
+          overflow: 'hidden'
         }}
       >
         <img

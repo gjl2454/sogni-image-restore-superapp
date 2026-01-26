@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   getFavorites,
-  isFavorite as checkIsFavorite,
   addFavorite,
   removeFavorite,
   toggleFavorite as toggleFavoriteService,
+  clearFavorites,
   type FavoriteImage
 } from '../services/favoritesService';
 

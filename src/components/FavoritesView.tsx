@@ -1,7 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { useFavorites } from '../hooks/useFavorites';
-import { useMediaUrl } from '../hooks/useMediaUrl';
-import { getCachedFavorite, createFavoriteBlobUrl } from '../utils/favoritesDB';
+import { getCachedFavorite, createFavoriteBlobUrl, cacheFavoriteImage } from '../utils/favoritesDB';
 import type { SogniClient } from '@sogni-ai/sogni-client';
 import type { FavoriteImage } from '../services/favoritesService';
 import './FavoritesView.css';
@@ -12,7 +11,7 @@ interface FavoritesViewProps {
 }
 
 const FavoritesView: React.FC<FavoritesViewProps> = ({ sogniClient, onViewImage }) => {
-  const { favorites, isFavorite, toggle, refresh } = useFavorites();
+  const { favorites, isFavorite, toggle } = useFavorites();
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 
   const handleToggleFavorite = useCallback(async (favorite: FavoriteImage, e: React.MouseEvent) => {
@@ -82,7 +81,6 @@ interface FavoriteItemProps {
 
 function FavoriteItem({
   favorite,
-  sogniClient,
   isHovered,
   onHoverChange,
   onToggleFavorite,
@@ -92,6 +90,7 @@ function FavoriteItem({
   const [displayUrl, setDisplayUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
+  const [imageError, setImageError] = useState(false);
 
   // Load cached image from IndexedDB on mount
   useEffect(() => {
@@ -105,8 +104,10 @@ function FavoriteItem({
           setBlobUrl(url);
           setDisplayUrl(url);
           setLoading(false);
+          console.log('[FavoriteItem] Loaded cached image for:', favorite.jobId);
         } else {
           // No cached image, fall back to original URL
+          console.log('[FavoriteItem] No cached image found for:', favorite.jobId, 'using original URL');
           setDisplayUrl(favorite.url);
           setLoading(false);
         }
@@ -131,6 +132,33 @@ function FavoriteItem({
     };
   }, [favorite.jobId, favorite.url]);
 
+  // Handle image load error (expired URL)
+  const handleImageError = useCallback(async () => {
+    console.error('[FavoriteItem] Image failed to load for:', favorite.jobId);
+    setImageError(true);
+    // Remove this favorite since it can't be displayed
+    await onToggleFavorite(favorite, { stopPropagation: () => {} } as React.MouseEvent);
+  }, [favorite, onToggleFavorite]);
+
+  // Handle successful image load - if using original URL and not cached, try to cache it
+  const handleImageLoad = useCallback(() => {
+    // If we're using the original URL (not a blob URL), try to cache it
+    if (displayUrl === favorite.url && !blobUrl) {
+      console.log('[FavoriteItem] Image loaded from original URL, attempting to cache:', favorite.jobId);
+      cacheFavoriteImage(
+        favorite.jobId,
+        favorite.projectId,
+        favorite.url,
+        favorite.createdAt,
+        favorite.modelName
+      ).then(() => {
+        console.log('[FavoriteItem] Successfully cached image:', favorite.jobId);
+      }).catch((error) => {
+        console.warn('[FavoriteItem] Failed to cache image on load:', error);
+      });
+    }
+  }, [displayUrl, favorite, blobUrl]);
+
   // Clean up blob URL when component unmounts
   useEffect(() => {
     return () => {
@@ -139,6 +167,11 @@ function FavoriteItem({
       }
     };
   }, [blobUrl]);
+
+  // Don't render if image failed to load or has no URL
+  if (imageError || (!loading && !displayUrl)) {
+    return null;
+  }
 
   return (
     <div
@@ -158,6 +191,8 @@ function FavoriteItem({
             alt={`Favorite ${favorite.jobId.slice(0, 8)}`}
             className="favorite-item-image"
             loading="lazy"
+            onLoad={handleImageLoad}
+            onError={handleImageError}
           />
           <button
             onClick={(e) => onToggleFavorite(favorite, e)}
@@ -198,12 +233,7 @@ function FavoriteItem({
             )}
           </button>
         </>
-      ) : (
-        <div className="favorite-item-error">
-          <span>⚠️</span>
-          <span>Unable to load image</span>
-        </div>
-      )}
+      ) : null}
     </div>
   );
 }

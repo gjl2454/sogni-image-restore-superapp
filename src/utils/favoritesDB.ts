@@ -65,41 +65,101 @@ function openDB(): Promise<IDBDatabase> {
 
 /**
  * Download image from URL and convert to blob
+ * Uses fetch for better CORS handling, falls back to canvas if needed
  */
 async function downloadImageAsBlob(url: string): Promise<{ blob: Blob; width: number; height: number }> {
+  try {
+    // Try fetching directly first (works if CORS headers are present)
+    console.log('[FavoritesDB] Attempting to fetch image:', url);
+    const response = await fetch(url, {
+      mode: 'cors',
+      credentials: 'omit'
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const blob = await response.blob();
+    console.log('[FavoritesDB] Successfully fetched image blob, size:', blob.size);
+
+    // Get image dimensions
+    const dimensions = await getImageDimensions(blob);
+
+    return {
+      blob,
+      width: dimensions.width,
+      height: dimensions.height
+    };
+  } catch (fetchError) {
+    console.warn('[FavoritesDB] Fetch failed, trying canvas approach:', fetchError);
+
+    // Fallback: try loading via Image and canvas (for same-origin or CORS-enabled images)
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+
+      img.onload = () => {
+        try {
+          // Create a canvas to convert image to blob
+          const canvas = document.createElement('canvas');
+          canvas.width = img.naturalWidth;
+          canvas.height = img.naturalHeight;
+
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            reject(new Error('Failed to get canvas context'));
+            return;
+          }
+
+          ctx.drawImage(img, 0, 0);
+
+          canvas.toBlob((blob) => {
+            if (blob) {
+              console.log('[FavoritesDB] Successfully created blob via canvas, size:', blob.size);
+              resolve({
+                blob,
+                width: img.naturalWidth,
+                height: img.naturalHeight
+              });
+            } else {
+              reject(new Error('Failed to convert image to blob'));
+            }
+          }, 'image/png');
+        } catch (canvasError) {
+          reject(canvasError);
+        }
+      };
+
+      img.onerror = (error) => {
+        console.error('[FavoritesDB] Image load error:', error);
+        reject(new Error('Failed to load image - CORS or network error'));
+      };
+
+      img.src = url;
+    });
+  }
+}
+
+/**
+ * Get dimensions of an image blob
+ */
+async function getImageDimensions(blob: Blob): Promise<{ width: number; height: number }> {
   return new Promise((resolve, reject) => {
     const img = new Image();
-    img.crossOrigin = 'anonymous'; // Enable CORS
+    const url = URL.createObjectURL(blob);
 
     img.onload = () => {
-      // Create a canvas to convert image to blob
-      const canvas = document.createElement('canvas');
-      canvas.width = img.naturalWidth;
-      canvas.height = img.naturalHeight;
-
-      const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        reject(new Error('Failed to get canvas context'));
-        return;
-      }
-
-      ctx.drawImage(img, 0, 0);
-
-      canvas.toBlob((blob) => {
-        if (blob) {
-          resolve({
-            blob,
-            width: img.naturalWidth,
-            height: img.naturalHeight
-          });
-        } else {
-          reject(new Error('Failed to convert image to blob'));
-        }
-      }, 'image/png');
+      URL.revokeObjectURL(url);
+      resolve({
+        width: img.naturalWidth,
+        height: img.naturalHeight
+      });
     };
 
     img.onerror = () => {
-      reject(new Error('Failed to load image'));
+      URL.revokeObjectURL(url);
+      reject(new Error('Failed to load image dimensions'));
     };
 
     img.src = url;

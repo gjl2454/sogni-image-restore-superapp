@@ -1,10 +1,12 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 
 interface ResultModalProps {
   isOpen: boolean;
   imageUrl: string;
   onClose: () => void;
   onDownload: () => void;
+  onPrint?: () => void;
   onShare?: () => void;
   currentIndex?: number;
   totalResults?: number;
@@ -17,6 +19,7 @@ export const ResultModal: React.FC<ResultModalProps> = ({
   imageUrl,
   onClose,
   onDownload,
+  onPrint,
   onShare,
   currentIndex,
   totalResults,
@@ -41,7 +44,7 @@ export const ResultModal: React.FC<ResultModalProps> = ({
         const response = await fetch(imageUrl);
         const blob = await response.blob();
         const file = new File([blob], 'restored-photo.jpg', { type: 'image/jpeg' });
-        
+
         await navigator.share({
           title: 'My Restored Photo',
           text: 'Check out my restored photo from Sogni Restoration!',
@@ -58,164 +61,233 @@ export const ResultModal: React.FC<ResultModalProps> = ({
     }
   };
 
-  return (
-    <div 
-      className="fixed inset-0 z-50"
+  return createPortal(
+    <div
       style={{
-        background: 'rgba(0, 0, 0, 0.92)',
-        backdropFilter: 'blur(8px)',
-        animation: 'fadeIn 0.2s ease-out'
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'rgba(0, 0, 0, 0.95)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 9999999
       }}
       onClick={onClose}
     >
-      {/* Close Button - Fixed position */}
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          onClose();
-        }}
-        className="fixed top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200"
-        style={{
-          background: 'rgba(255, 255, 255, 0.1)',
-          backdropFilter: 'blur(10px)',
-          border: '1px solid rgba(255, 255, 255, 0.2)',
-          color: 'white',
-          zIndex: 60
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)';
-          e.currentTarget.style.transform = 'scale(1.1)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
-          e.currentTarget.style.transform = 'scale(1)';
-        }}
-      >
-        ✕
-      </button>
-
-      {/* Previous Arrow - Fixed position */}
-      {totalResults && totalResults > 1 && onPrevious && (
-        <button
-          onClick={(e) => {
-            console.log('[MODAL BUTTON] Previous clicked!', { onPrevious: !!onPrevious });
-            e.preventDefault();
-            e.stopPropagation();
-            if (onPrevious) {
-              console.log('[MODAL BUTTON] Calling onPrevious');
-              onPrevious();
-            }
-          }}
-          className="fixed left-4 top-1/2 w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 cursor-pointer"
-          style={{
-            background: 'rgba(255, 255, 255, 0.1)',
-            backdropFilter: 'blur(10px)',
-            border: '1px solid rgba(255, 255, 255, 0.2)',
-            color: 'white',
-            fontSize: '1.5rem',
-            transform: 'translateY(-50%)',
-            zIndex: 100,
-            pointerEvents: 'auto'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)';
-            e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
-            e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
-          }}
-        >
-          ‹
-        </button>
-      )}
-
-      {/* Next Arrow - Fixed position */}
-      {totalResults && totalResults > 1 && onNext && (
-        <button
-          onClick={(e) => {
-            console.log('[MODAL BUTTON] Next clicked!', { onNext: !!onNext });
-            e.preventDefault();
-            e.stopPropagation();
-            if (onNext) {
-              console.log('[MODAL BUTTON] Calling onNext');
-              onNext();
-            }
-          }}
-          className="fixed right-4 top-1/2 w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 cursor-pointer"
-          style={{
-            background: 'rgba(255, 255, 255, 0.1)',
-            backdropFilter: 'blur(10px)',
-            border: '1px solid rgba(255, 255, 255, 0.2)',
-            color: 'white',
-            fontSize: '1.5rem',
-            transform: 'translateY(-50%)',
-            zIndex: 100,
-            pointerEvents: 'auto'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)';
-            e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
-            e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
-          }}
-        >
-          ›
-        </button>
-      )}
-
-      {/* Modal Content - Centered */}
-      <div 
+      {/* Modal Content Card */}
+      <div
         onClick={(e) => e.stopPropagation()}
-        className="fixed inset-0 flex items-center justify-center p-4 pointer-events-none"
+        className="relative flex flex-col"
+        style={{
+          background: 'var(--color-bg-elevated)',
+          borderRadius: 'var(--radius-lg)',
+          overflow: 'visible',
+          width: '90vw',
+          maxHeight: '90vh'
+        }}
       >
-        <div 
-          className="relative flex flex-col items-center gap-6 pointer-events-auto"
-          style={{
-            animation: 'slideUp 0.3s ease-out'
-          }}
-        >
-        {/* Image */}
-        <img
-          src={imageUrl}
-          alt="Restored"
-          style={{
-            maxWidth: '80vw',
-            maxHeight: '70vh',
-            width: 'auto',
-            height: 'auto',
-            objectFit: 'contain',
-            display: 'block',
-            borderRadius: '0.5rem',
-            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.6)'
-          }}
-        />
-
-        {/* Action Buttons */}
-        <div className="flex items-center justify-center gap-6">
+        {/* Previous Arrow - Absolute position on white card */}
+        {totalResults && totalResults > 1 && onPrevious && (
           <button
-            onClick={handleShare}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onPrevious();
+            }}
             style={{
-              background: 'rgba(255, 255, 255, 0.15)',
-              backdropFilter: 'blur(10px)',
-              border: '1px solid rgba(255, 255, 255, 0.3)',
+              position: 'absolute',
+              left: '20px',
+              top: '50%',
+              background: 'rgba(0, 0, 0, 0.5)',
+              border: 'none',
               color: 'white',
-              fontSize: '0.875rem',
-              fontWeight: 500
+              width: '50px',
+              height: '50px',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '32px',
+              cursor: 'pointer',
+              transform: 'translateY(-50%)',
+              zIndex: 10,
+              transition: 'all 0.2s ease'
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.25)';
-              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.background = 'rgba(0, 0, 0, 0.7)';
+              e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
+              e.currentTarget.style.background = 'rgba(0, 0, 0, 0.5)';
+              e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
+            }}
+          >
+            ‹
+          </button>
+        )}
+
+        {/* Next Arrow - Absolute position on white card */}
+        {totalResults && totalResults > 1 && onNext && (
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onNext();
+            }}
+            style={{
+              position: 'absolute',
+              right: '20px',
+              top: '50%',
+              background: 'rgba(0, 0, 0, 0.5)',
+              border: 'none',
+              color: 'white',
+              width: '50px',
+              height: '50px',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '32px',
+              cursor: 'pointer',
+              transform: 'translateY(-50%)',
+              zIndex: 10,
+              transition: 'all 0.2s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'rgba(0, 0, 0, 0.7)';
+              e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'rgba(0, 0, 0, 0.5)';
+              e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
+            }}
+          >
+            ›
+          </button>
+        )}
+
+        {/* Top Bar */}
+        <div
+          style={{
+            position: 'relative',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '16px 24px',
+            background: 'var(--color-bg-elevated)',
+            borderBottom: '1px solid var(--color-border)',
+            borderTopLeftRadius: 'var(--radius-lg)',
+            borderTopRightRadius: 'var(--radius-lg)'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
+            {currentIndex !== undefined && totalResults && totalResults > 1 && (
+              <span style={{
+                color: 'var(--color-text-secondary)',
+                fontSize: '0.875rem'
+              }}>
+                {currentIndex + 1} / {totalResults}
+              </span>
+            )}
+          </div>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onClose();
+            }}
+            style={{
+              background: 'rgba(0, 0, 0, 0.5)',
+              border: 'none',
+              color: 'white',
+              width: '36px',
+              height: '36px',
+              borderRadius: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '20px',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              flexShrink: 0,
+              marginLeft: '16px'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'rgba(0, 0, 0, 0.7)';
+              e.currentTarget.style.transform = 'scale(1.05)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'rgba(0, 0, 0, 0.5)';
+              e.currentTarget.style.transform = 'scale(1)';
+            }}
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* Image Container */}
+        <div
+          style={{
+            flex: 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px',
+            minHeight: '400px',
+            overflow: 'auto'
+          }}
+        >
+          <img
+            src={imageUrl}
+            alt="Restored"
+            style={{
+              maxWidth: '100%',
+              maxHeight: 'calc(90vh - 200px)',
+              objectFit: 'contain',
+              borderRadius: 'var(--radius-md)'
+            }}
+          />
+        </div>
+
+        {/* Action Buttons */}
+        <div
+          style={{
+            padding: '20px 24px',
+            borderTop: '1px solid var(--color-border)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '12px'
+          }}
+        >
+          <button
+            onClick={handleShare}
+            style={{
+              background: 'rgba(123, 163, 208, 0.2)',
+              border: '1px solid rgba(123, 163, 208, 0.4)',
+              borderRadius: '6px',
+              padding: '6px 12px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontSize: '0.85rem',
+              fontWeight: 500,
+              color: 'var(--color-text-primary)',
+              transition: 'all 0.2s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'rgba(123, 163, 208, 0.3)';
+              e.currentTarget.style.transform = 'translateY(-1px)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'rgba(123, 163, 208, 0.2)';
               e.currentTarget.style.transform = 'translateY(0)';
             }}
           >
-            <span style={{ fontSize: '1.25rem' }}>↗</span>
+            <span>↗</span>
             <span>Share</span>
           </button>
 
@@ -224,66 +296,69 @@ export const ResultModal: React.FC<ResultModalProps> = ({
               e.stopPropagation();
               onDownload();
             }}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200"
             style={{
-              background: 'var(--sogni-gradient)',
-              border: '1px solid rgba(255, 255, 255, 0.3)',
-              color: 'white',
-              fontSize: '0.875rem',
-              fontWeight: 600,
-              boxShadow: '0 4px 12px rgba(180, 205, 237, 0.3)'
+              background: 'rgba(123, 163, 208, 0.2)',
+              border: '1px solid rgba(123, 163, 208, 0.4)',
+              borderRadius: '6px',
+              padding: '6px 12px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontSize: '0.85rem',
+              fontWeight: 500,
+              color: 'var(--color-text-primary)',
+              transition: 'all 0.2s ease'
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.boxShadow = '0 6px 20px rgba(180, 205, 237, 0.4)';
+              e.currentTarget.style.background = 'rgba(123, 163, 208, 0.3)';
+              e.currentTarget.style.transform = 'translateY(-1px)';
             }}
             onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'rgba(123, 163, 208, 0.2)';
               e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 4px 12px rgba(180, 205, 237, 0.3)';
             }}
           >
-            <span style={{ fontSize: '1.25rem' }}>⬇</span>
+            <span>⬇️</span>
             <span>Download</span>
           </button>
-        </div>
 
-        {/* Result Counter */}
-        {currentIndex !== undefined && totalResults && totalResults > 1 && (
-          <div 
-            className="text-center mt-4"
-            style={{
-              color: 'rgba(255, 255, 255, 0.7)',
-              fontSize: '0.875rem',
-              fontWeight: 500
-            }}
-          >
-            {currentIndex + 1} of {totalResults}
-          </div>
-        )}
+          {onPrint && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onPrint();
+              }}
+              style={{
+                background: 'rgba(123, 163, 208, 0.2)',
+                border: '1px solid rgba(123, 163, 208, 0.4)',
+                borderRadius: '6px',
+                padding: '6px 12px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: '0.85rem',
+                fontWeight: 500,
+                color: 'var(--color-text-primary)',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(123, 163, 208, 0.3)';
+                e.currentTarget.style.transform = 'translateY(-1px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(123, 163, 208, 0.2)';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
+            >
+              <span>🖨️</span>
+              <span>Print</span>
+            </button>
+          )}
         </div>
       </div>
-
-      <style>{`
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-          }
-          to {
-            opacity: 1;
-          }
-        }
-
-        @keyframes slideUp {
-          from {
-            opacity: 0;
-            transform: translateY(20px) scale(0.95);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-          }
-        }
-      `}</style>
-    </div>
+    </div>,
+    document.body
   );
 };

@@ -5,7 +5,7 @@
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.4);
-  z-index: 99998;
+  z-index: 99998; /* Lowest layer - behind highlight and tooltip */
   backdrop-filter: blur(1px);
 }
 
@@ -18,7 +18,7 @@
               0 0 60px rgba(180, 205, 237, 0.4);
   pointer-events: none;
   /* Removed transition for instant updates during window resize */
-  background: rgba(180, 205, 237, 0.1);
+  background: rgba(180, 205, 237, 0.05); /* Lighter background to ensure tooltip text is readable through it */
 }
 
 .onboarding-tooltip {
@@ -26,16 +26,16 @@
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-xl);
   border: 2px solid var(--sogni-purple);
-  width: 400px; /* Fixed width - constant size */
-  max-width: 400px;
-  min-width: 400px;
+  width: 400px;
+  max-width: min(400px, calc(100vw - 40px)); /* Responsive max-width */
+  min-width: 280px;
   /* Removed animation for instant responsiveness */
   overflow-y: auto; /* Allow scrolling if content is too tall */
   overflow-x: hidden;
   display: flex;
   flex-direction: column;
   height: auto; /* Let content determine height, but max-height will constrain */
-  max-height: 400px; /* Increased max height to ensure buttons are visible */
+  max-height: min(400px, calc(100vh - 100px)); /* Responsive max-height */
   min-height: 200px;
   box-sizing: border-box;
 }

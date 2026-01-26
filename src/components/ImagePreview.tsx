@@ -75,30 +75,32 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
     canGoNext: positionInCompleted >= 0 && positionInCompleted < completedJobs.length - 1
   });
   
-  const canGoPrevious = positionInCompleted > 0;
-  const canGoNext = positionInCompleted >= 0 && positionInCompleted < completedJobs.length - 1;
-  
+  // Always allow navigation with wrap-around
+  const hasMultipleResults = completedJobs.length > 1;
+
   const handlePrevious = () => {
-    console.log('[NAV] handlePrevious CALLED', { positionInCompleted, canGoPrevious });
-    if (canGoPrevious && onSelectResult) {
-      const prevJob = completedJobs[positionInCompleted - 1];
+    console.log('[NAV] handlePrevious CALLED', { positionInCompleted, completedJobsCount: completedJobs.length });
+    if (hasMultipleResults && onSelectResult && positionInCompleted >= 0) {
+      // Wrap around: if at first image, go to last
+      const prevIndex = positionInCompleted === 0 ? completedJobs.length - 1 : positionInCompleted - 1;
+      const prevJob = completedJobs[prevIndex];
       console.log('[NAV] Selecting previous job:', prevJob.index, prevJob.resultUrl?.substring(0, 50));
-      // Pass both URL and job index to ensure correct selection
       onSelectResult(prevJob.resultUrl!, prevJob.index);
     } else {
-      console.log('[NAV] Cannot go previous:', { canGoPrevious, hasHandler: !!onSelectResult });
+      console.log('[NAV] Cannot go previous:', { hasMultipleResults, hasHandler: !!onSelectResult });
     }
   };
 
   const handleNext = () => {
-    console.log('[NAV] handleNext CALLED', { positionInCompleted, canGoNext });
-    if (canGoNext && onSelectResult) {
-      const nextJob = completedJobs[positionInCompleted + 1];
+    console.log('[NAV] handleNext CALLED', { positionInCompleted, completedJobsCount: completedJobs.length });
+    if (hasMultipleResults && onSelectResult && positionInCompleted >= 0) {
+      // Wrap around: if at last image, go to first
+      const nextIndex = positionInCompleted === completedJobs.length - 1 ? 0 : positionInCompleted + 1;
+      const nextJob = completedJobs[nextIndex];
       console.log('[NAV] Selecting next job:', nextJob.index, nextJob.resultUrl?.substring(0, 50));
-      // Pass both URL and job index to ensure correct selection
       onSelectResult(nextJob.resultUrl!, nextJob.index);
     } else {
-      console.log('[NAV] Cannot go next:', { canGoNext, hasHandler: !!onSelectResult });
+      console.log('[NAV] Cannot go next:', { hasMultipleResults, hasHandler: !!onSelectResult });
     }
   };
 
@@ -131,7 +133,7 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
       )}
       
       {showResultsGrid ? (
-        <div className="flex-1 min-h-0 overflow-hidden">
+        <div className="flex-1 min-h-0 flex flex-col" style={{ maxHeight: '100%', overflow: 'hidden' }}>
           <ResultsGridWithSliders
             results={restoredUrls}
             restorationJobs={restorationJobs}
@@ -252,10 +254,34 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
         imageUrl={selectedUrl}
         onClose={onClearSelection || (() => {})}
         onDownload={() => onDownload(selectedUrl)}
+        onPrint={() => {
+          const printWindow = window.open('', '_blank');
+          if (printWindow) {
+            printWindow.document.write(`
+              <html>
+                <head>
+                  <title>Print Image</title>
+                  <style>
+                    body { margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+                    img { max-width: 100%; height: auto; }
+                    @media print {
+                      body { margin: 0; }
+                      img { max-width: 100%; page-break-inside: avoid; }
+                    }
+                  </style>
+                </head>
+                <body>
+                  <img src="${selectedUrl}" onload="window.print(); window.close();" />
+                </body>
+              </html>
+            `);
+            printWindow.document.close();
+          }
+        }}
         currentIndex={positionInCompleted >= 0 ? positionInCompleted : undefined}
-        totalResults={completedJobs.length > 1 ? completedJobs.length : undefined}
-        onPrevious={canGoPrevious ? handlePrevious : undefined}
-        onNext={canGoNext ? handleNext : undefined}
+        totalResults={hasMultipleResults ? completedJobs.length : undefined}
+        onPrevious={hasMultipleResults ? handlePrevious : undefined}
+        onNext={hasMultipleResults ? handleNext : undefined}
       />
     )}
   </>

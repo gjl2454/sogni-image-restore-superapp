@@ -56,8 +56,16 @@ export const ResultsGridWithSliders: React.FC<ResultsGridWithSlidersProps> = ({
     return 'grid-cols-2 md:grid-cols-4';
   };
 
+  // Calculate grid rows based on number of items
+  const getGridRows = () => {
+    if (itemsToDisplay.length === 2) return 1;
+    if (itemsToDisplay.length === 4) return 1; // 4 columns on desktop
+    if (itemsToDisplay.length === 6) return 1; // 6 columns on desktop
+    return 1;
+  };
+
   return (
-    <div className="w-full h-full flex flex-col gap-1.5">
+    <div className="w-full h-full flex flex-col gap-1.5" style={{ overflow: 'hidden' }}>
       {/* Header - ultra compact */}
       <div className="text-center flex-shrink-0">
         <p className="font-bold" style={{
@@ -78,13 +86,53 @@ export const ResultsGridWithSliders: React.FC<ResultsGridWithSlidersProps> = ({
         }}>
           {restorationJobs.some(j => j.generating)
             ? 'Each restoration appears as it completes'
-            : 'Drag slider to compare before and after'
+            : 'Drag slider to compare • Tap ♡ to save forever'
           }
         </p>
       </div>
 
+      {/* Expiry Warning Banner */}
+      {!restorationJobs.some(j => j.generating) && itemsToDisplay.some(item => item.resultUrl) && (
+        <div
+          style={{
+            padding: '8px 12px',
+            background: 'rgba(255, 152, 0, 0.1)',
+            border: '1px solid rgba(255, 152, 0, 0.3)',
+            borderRadius: '6px',
+            fontSize: '0.7rem',
+            color: 'var(--color-text-secondary)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            flexShrink: 0
+          }}
+        >
+          <span>⚠️</span>
+          <div>
+            <strong style={{ color: 'var(--color-text-primary)' }}>These images expire in 24 hours.</strong>
+            {' '}Favorite (♡) to save permanently or download to your device.
+          </div>
+        </div>
+      )}
+
       {/* Grid of Results/Placeholders - ultra compact to fit without scrolling */}
-      <div className={`grid ${getGridCols()} gap-1.5 flex-shrink-0`}>
+      <div
+        className={`grid ${getGridCols()} gap-1.5`}
+        style={{
+          flex: '1 1 auto',
+          minHeight: 0,
+          width: '100%',
+          maxHeight: '100%',
+          alignContent: 'center',
+          justifyContent: 'center',
+          // For 2 items, 1 row taking full height. For 4 items, 2 rows on mobile
+          gridAutoRows: itemsToDisplay.length === 2
+            ? 'minmax(0, 1fr)'
+            : itemsToDisplay.length === 4
+              ? 'minmax(0, calc(50% - 3px))'
+              : 'minmax(0, 1fr)'
+        }}
+      >
         {itemsToDisplay.map((item, index) => (
           <div
             key={item.id}
@@ -92,28 +140,39 @@ export const ResultsGridWithSliders: React.FC<ResultsGridWithSlidersProps> = ({
             style={{
               animationDelay: `${index * 100}ms`,
               animationFillMode: 'both',
-              opacity: 0
+              opacity: 0,
+              minHeight: 0,
+              minWidth: 0,
+              width: '100%',
+              height: '100%',
+              maxHeight: '100%'
             }}
           >
-            {/* Before/After Slider Container or Loading Placeholder - compact and square */}
+            {/* Before/After Slider Container or Loading Placeholder */}
             <div
-              className="relative rounded-md overflow-hidden transition-all duration-300"
+              className="relative rounded-md transition-all duration-300"
               onMouseEnter={() => !item.generating ? setHoveredIndex(index) : null}
               onMouseLeave={() => setHoveredIndex(null)}
               style={{
+                width: '100%',
+                height: '100%',
+                maxWidth: '100%',
+                maxHeight: '100%',
                 aspectRatio: '1 / 1',
+                position: 'relative',
                 background: item.generating ? 'linear-gradient(135deg, rgba(180, 205, 237, 0.1), rgba(194, 148, 255, 0.1))' : 'var(--color-bg-elevated)',
                 boxShadow: hoveredIndex === index && !item.generating
                   ? '0 6px 20px rgba(180, 205, 237, 0.35), 0 0 0 2px rgba(180, 205, 237, 0.3)'
                   : '0 1px 4px rgba(0, 0, 0, 0.05), 0 0 0 1px var(--color-border-light)',
                 transform: hoveredIndex === index && !item.generating ? 'translateY(-1px) scale(1.015)' : 'translateY(0) scale(1)',
                 transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                border: '1px solid var(--color-border-light)'
+                border: '1px solid var(--color-border-light)',
+                objectFit: 'contain'
               }}
             >
               {item.generating ? (
                 /* PHOTOBOOTH PATTERN: Loading placeholder with progress and ETA - ultra compact */
-                <div className="w-full h-full flex flex-col items-center justify-center p-2">
+                <div className="absolute inset-0 flex flex-col items-center justify-center p-2">
                   <div className="text-2xl mb-2 animate-pulse">✨</div>
                   <div className="w-full max-w-[85%]">
                     <div className="w-full rounded-full h-1.5 overflow-hidden mb-1" style={{
@@ -143,9 +202,9 @@ export const ResultsGridWithSliders: React.FC<ResultsGridWithSlidersProps> = ({
                 </div>
               ) : item.resultUrl ? (
                 /* Show completed result */
-                <div className="relative w-full h-full">
+                <div className="absolute inset-0 flex items-center justify-center" style={{ padding: '8px' }}>
                   {originalImage ? (
-                    <div className="w-full h-full cursor-pointer">
+                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <BeforeAfterCompare
                         beforeImage={originalImage}
                         afterImage={item.resultUrl}
@@ -156,13 +215,21 @@ export const ResultsGridWithSliders: React.FC<ResultsGridWithSlidersProps> = ({
                     <img
                       src={item.resultUrl}
                       alt={`Result ${index + 1}`}
-                      className="w-full h-full object-cover cursor-pointer"
+                      className="cursor-pointer"
+                      style={{
+                        maxWidth: '100%',
+                        maxHeight: '100%',
+                        width: 'auto',
+                        height: 'auto',
+                        objectFit: 'contain',
+                        display: 'block'
+                      }}
                       onClick={() => onSelect(item.resultUrl!, item.index)}
                     />
                   )}
                   {/* Heart/Favorite Button - smaller */}
                   <button
-                    onClick={(e) => {
+                    onClick={async (e) => {
                       e.stopPropagation();
                       // Use item.id (unique per restoration) instead of index-based ID
                       // This ensures each restoration has unique job IDs
@@ -171,9 +238,10 @@ export const ResultsGridWithSliders: React.FC<ResultsGridWithSlidersProps> = ({
                         jobId,
                         projectId: projectId || `temp-${Date.now()}`,
                         url: item.resultUrl!,
-                        createdAt: Date.now()
+                        createdAt: Date.now(),
+                        modelName
                       };
-                      toggle(favoriteImage);
+                      await toggle(favoriteImage);
                     }}
                     className="absolute top-1.5 right-1.5 z-10"
                     style={{

@@ -7,8 +7,7 @@
 
 import {
   cacheFavoriteImage,
-  removeCachedFavorite,
-  getCachedFavorite
+  removeCachedFavorite
 } from '../utils/favoritesDB';
 
 const FAVORITES_STORAGE_KEY = 'sogni_restoration_favorites';

@@ -35,14 +35,27 @@ export async function downloadImagesAsZip(
           onProgress(i, totalImages, `Adding image ${i + 1} of ${totalImages}...`);
         }
 
-        // Fetch the image as a blob
-        const response = await fetch(image.url);
-        if (!response.ok) {
-          console.warn(`Failed to fetch image ${i + 1}: ${image.filename}`);
-          continue;
-        }
+        let blob: Blob;
 
-        const blob = await response.blob();
+        // Check if it's a blob URL (already in memory)
+        if (image.url.startsWith('blob:')) {
+          // Fetch the blob directly
+          const response = await fetch(image.url);
+          if (!response.ok) {
+            console.warn(`Failed to fetch blob image ${i + 1}: ${image.filename}`);
+            continue;
+          }
+          blob = await response.blob();
+        } else {
+          // For remote URLs, use backend proxy to avoid CORS issues
+          const proxyUrl = `/api/download?url=${encodeURIComponent(image.url)}&filename=${encodeURIComponent(image.filename)}`;
+          const response = await fetch(proxyUrl);
+          if (!response.ok) {
+            console.warn(`Failed to fetch image ${i + 1}: ${image.filename}`);
+            continue;
+          }
+          blob = await response.blob();
+        }
 
         // Add to ZIP with the specified filename
         zip.file(image.filename, blob);
@@ -157,14 +170,27 @@ export async function downloadVideosAsZip(
           onProgress(i, totalVideos, `Adding video ${i + 1} of ${totalVideos}...`);
         }
 
-        // Fetch the video as a blob
-        const response = await fetch(video.url);
-        if (!response.ok) {
-          console.warn(`Failed to fetch video ${i + 1}: ${video.filename}`);
-          continue;
-        }
+        let blob: Blob;
 
-        const blob = await response.blob();
+        // Check if it's a blob URL (already in memory)
+        if (video.url.startsWith('blob:')) {
+          // Fetch the blob directly
+          const response = await fetch(video.url);
+          if (!response.ok) {
+            console.warn(`Failed to fetch blob video ${i + 1}: ${video.filename}`);
+            continue;
+          }
+          blob = await response.blob();
+        } else {
+          // For remote URLs, use backend proxy to avoid CORS issues
+          const proxyUrl = `/api/download?url=${encodeURIComponent(video.url)}&filename=${encodeURIComponent(video.filename)}`;
+          const response = await fetch(proxyUrl);
+          if (!response.ok) {
+            console.warn(`Failed to fetch video ${i + 1}: ${video.filename}`);
+            continue;
+          }
+          blob = await response.blob();
+        }
 
         // Add to ZIP with the specified filename
         zip.file(video.filename, blob);

@@ -1,20 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useOnboarding } from '../../hooks/useOnboarding';
-import { ONBOARDING_STEPS, type OnboardingStep } from '../../utils/onboardingSteps';
+import { ONBOARDING_STEPS } from '../../utils/onboardingSteps';
 import './HelpOnboarding.css';
 
-// Module-level cache for step 1 highlight position - persists across component remounts
-let step1HighlightCache: React.CSSProperties | null = null;
-// Track the last step to detect when returning to step 1
-let lastStepId: string | null = null;
-// Track if we should use the cached position for step 1 (prevents recalculation on observer triggers)
-let shouldUseStep1Cache = false;
-// Clear cache function - call this to reset cache if it's wrong
-export function clearStep1Cache() {
-  step1HighlightCache = null;
-  shouldUseStep1Cache = false;
-  lastStepId = null;
-}
+// No caching - always recalculate positions for consistency
 
 interface HelpOnboardingProps {
   /** Callback when onboarding is completed or skipped */
@@ -49,9 +38,8 @@ const HelpOnboarding: React.FC<HelpOnboardingProps> = ({ onComplete, onResetRead
   const [targetElement, setTargetElement] = useState<HTMLElement | null>(null);
   const [tooltipStyle, setTooltipStyle] = useState<React.CSSProperties>({});
   const [highlightStyle, setHighlightStyle] = useState<React.CSSProperties>({});
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const overlayRef = useRef<HTMLDivElement>(null);
-  // Use ref to track cache flag so observer callbacks always have current value
-  const shouldUseCacheRef = useRef(false);
 
   const currentStepData = ONBOARDING_STEPS[currentStep];
 
@@ -63,10 +51,63 @@ const HelpOnboarding: React.FC<HelpOnboardingProps> = ({ onComplete, onResetRead
     const safePadding = padding + 5; // Extra safety margin to prevent cutoff
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight; // Always get current height
-    // Use fixed dimensions for tooltip - size should remain constant
-    const maxTooltipWidth = 400; // Fixed width, don't adjust based on viewport
-    // Use fixed max height, but ensure it doesn't exceed viewport for positioning calculations
-    const maxTooltipHeight = 350; // Fixed height, but we'll still check viewport bounds for positioning
+    // Use responsive dimensions for tooltip based on viewport
+    // Cap at 400px but reduce on smaller screens to prevent overlap
+    // For step 2 (upload), use even narrower width to fit on sides
+    // For steps 3 and 4 (restore, results), use larger centered width
+    const stepId = currentStepData?.id;
+    const isStep2 = stepId === 'upload';
+    const isStep3or4 = stepId === 'restore' || stepId === 'results';
+    const maxTooltipWidth = isStep2
+      ? Math.min(280, viewportWidth - 40) // Narrower for step 2 to fit on sides
+      : isStep3or4
+        ? Math.min(500, viewportWidth - 80) // Larger for steps 3-4, centered
+        : Math.min(400, viewportWidth - 40); // Responsive width
+    // Use responsive max height
+    const maxTooltipHeight = Math.min(400, viewportHeight - 100); // Responsive height
+
+    // For steps 3 and 4, center within upload box (doesn't need targetElement)
+    if (isStep3or4) {
+      const uploadZone = document.querySelector('[data-onboarding="upload-zone"]');
+      if (uploadZone) {
+        const uploadRect = uploadZone.getBoundingClientRect();
+        console.log('[Steps 3-4] Upload zone rect:', uploadRect);
+
+        // Calculate exact center position within the upload box
+        // Move up slightly from mathematical center for better visual centering
+        const top = uploadRect.top + (uploadRect.height / 2) - 1;
+        const left = uploadRect.left + (uploadRect.width / 2);
+
+        console.log('[Steps 3-4] Calculated center position:', { top, left });
+
+        return {
+          position: 'fixed' as const,
+          top: `${top}px`,
+          left: `${left}px`,
+          transform: 'translate(-50%, -50%)',
+          zIndex: 100002,
+          maxWidth: `${maxTooltipWidth}px`,
+          maxHeight: `${maxTooltipHeight}px`,
+          width: 'auto'
+        };
+      } else {
+        // Fallback to screen center if upload zone not found
+        console.log('[Steps 3-4] Upload zone not found, using screen center');
+        const top = viewportHeight / 2 - 1;
+        const left = viewportWidth / 2;
+
+        return {
+          position: 'fixed' as const,
+          top: `${top}px`,
+          left: `${left}px`,
+          transform: 'translate(-50%, -50%)',
+          zIndex: 100002,
+          maxWidth: `${maxTooltipWidth}px`,
+          maxHeight: `${maxTooltipHeight}px`,
+          width: 'auto'
+        };
+      }
+    }
 
     if (!targetElement) {
       // Center the tooltip if no target element
@@ -75,7 +116,7 @@ const HelpOnboarding: React.FC<HelpOnboardingProps> = ({ onComplete, onResetRead
         top: '50%',
         left: '50%',
         transform: 'translate(-50%, -50%)',
-        zIndex: 100000,
+        zIndex: 100002, // Higher than both backdrop (99998) and highlight (100001)
         maxWidth: `${maxTooltipWidth}px`,
         maxHeight: `${maxTooltipHeight}px`,
         width: 'auto'
@@ -84,7 +125,6 @@ const HelpOnboarding: React.FC<HelpOnboardingProps> = ({ onComplete, onResetRead
 
     const rect = targetElement.getBoundingClientRect();
     const position = currentStepData.position || 'bottom';
-    const stepId = currentStepData.id;
     
     // Use actual tooltip dimensions if available, otherwise use fixed estimates
     // Tooltip size should remain constant - only position changes
@@ -105,46 +145,92 @@ const HelpOnboarding: React.FC<HelpOnboardingProps> = ({ onComplete, onResetRead
     // Step-specific positioning - ALWAYS use consistent positioning for each step
     if (stepId === 'number-of-images') {
       // Step 1: Position right below the highlighted batch number buttons
-      // Small spacing to place tooltip directly below without covering
-      const extraSpacing = 12; // Reduced spacing to move tooltip up slightly
+      // Use reduced spacing to move text box up and prevent bottom cutoff
+      const extraSpacing = 5; // Reduced to 5px to move text box very close
       top = rect.bottom + extraSpacing;
       left = rect.left + rect.width / 2;
       transform = 'translateX(-50%)'; // ALWAYS below - never change this
-      
+
       // Only adjust the exact top position to fit within viewport, but ALWAYS keep it below
       // Never change transform to 'translate(-50%, -100%)' for step 1
       const tooltipBottom = top + tooltipHeight;
       // Add extra padding at bottom to prevent cutoff
-      const bottomPadding = 30;
+      const bottomPadding = 50; // Increased from 30 to 50 to ensure full visibility
       if (tooltipBottom > viewportHeight - padding - bottomPadding) {
         // Adjust top to fit, but keep it below the element with minimum spacing
-        top = Math.max(rect.bottom + extraSpacing, viewportHeight - padding - tooltipHeight - bottomPadding);
-        // Ensure we maintain minimum spacing from the element (at least 12px)
-        if (top < rect.bottom + 12) {
-          top = rect.bottom + 12; // Minimum spacing to avoid overlap
+        top = Math.max(rect.bottom + 5, viewportHeight - padding - tooltipHeight - bottomPadding);
+        // Ensure we maintain minimum spacing from the element
+        if (top < rect.bottom + 5) {
+          top = rect.bottom + 5; // Minimum spacing to avoid overlap
         }
       }
       // Final check: ensure we're not overlapping with the element
-      // Always maintain at least 12px spacing to prevent covering
-      if (top < rect.bottom + 12) {
-        top = rect.bottom + 12; // Ensure proper spacing to avoid covering
+      // Always maintain minimum spacing to prevent covering
+      if (top < rect.bottom + 5) {
+        top = rect.bottom + 5; // Ensure proper spacing to avoid covering
       }
+
+      // Always recalculate to ensure consistency (no caching)
+      return {
+        position: 'fixed' as const,
+        top: `${top}px`,
+        left: `${left}px`,
+        transform,
+        zIndex: 100002,
+        maxWidth: `${maxTooltipWidth}px`,
+        maxHeight: `${maxTooltipHeight}px`,
+        width: 'auto'
+      };
     } else if (stepId === 'upload') {
-      // Step 2: ALWAYS position below the drag and drop box to NEVER cover it
-      // Never position to the left to avoid any risk of overlap
-      top = rect.bottom + 40; // Extra spacing to ensure no overlap
-      left = rect.left + rect.width / 2;
-      transform = 'translateX(-50%)';
+      // Step 2: Position on the left or right side of the upload box (no caching)
+      const spaceOnLeft = rect.left - padding;
+      const spaceOnRight = viewportWidth - rect.right - padding;
+      const requiredSpace = tooltipWidth; // Just the tooltip width, no buffer - overlap detection will handle spacing
+
+      // Try left first, then right, if neither has full space use the side with more space
+      if (spaceOnLeft >= requiredSpace) {
+        // Enough space on left - position to the left
+        top = rect.top + rect.height / 2;
+        left = rect.left - spacing;
+        transform = 'translate(-100%, -50%)';
+      } else if (spaceOnRight >= requiredSpace) {
+        // Not enough space on left but enough on right - position to the right
+        top = rect.top + rect.height / 2;
+        left = rect.right + spacing;
+        transform = 'translateY(-50%)';
+      } else if (spaceOnLeft > spaceOnRight) {
+        // Neither side has full space, but left has more - position on left and let bounds checking fit it
+        top = rect.top + rect.height / 2;
+        left = rect.left - spacing;
+        transform = 'translate(-100%, -50%)';
+      } else {
+        // Right has more space - position on right and let bounds checking fit it
+        top = rect.top + rect.height / 2;
+        left = rect.right + spacing;
+        transform = 'translateY(-50%)';
+      }
     } else {
       // Other steps: Use the configured position
       switch (position) {
         case 'top':
           top = rect.top - spacing;
           transform = 'translate(-50%, -100%)';
-          // If tooltip would go off top, position below instead
-          if (top - tooltipHeight < padding) {
+          // Check if tooltip would go off top
+          const tooltipTopEdge = top - tooltipHeight;
+          if (tooltipTopEdge < padding) {
+            // Not enough space above, position below instead
             top = rect.bottom + spacing;
             transform = 'translateX(-50%)';
+            // Ensure it doesn't go off bottom either
+            const tooltipBottomEdge = top + tooltipHeight;
+            if (tooltipBottomEdge > viewportHeight - padding) {
+              // Adjust to fit within viewport
+              top = viewportHeight - padding - tooltipHeight;
+              // Make sure it doesn't overlap with element
+              if (top < rect.bottom + spacing) {
+                top = rect.bottom + spacing;
+              }
+            }
           }
           break;
         case 'left':
@@ -223,8 +309,8 @@ const HelpOnboarding: React.FC<HelpOnboardingProps> = ({ onComplete, onResetRead
     if (stepId === 'number-of-images') {
       // Calculate current spacing
       const currentSpacing = top - rect.bottom;
-      // Enforce minimum spacing of 20px to place tooltip right below highlighted element
-      const minSpacing = 20;
+      // Enforce minimum spacing to place tooltip right below highlighted element
+      const minSpacing = 25; // Increased to prevent overlap
       if (currentSpacing < minSpacing) {
         top = rect.bottom + minSpacing;
         transform = 'translateX(-50%)'; // Always keep it below
@@ -254,9 +340,9 @@ const HelpOnboarding: React.FC<HelpOnboardingProps> = ({ onComplete, onResetRead
       if (top + tooltipHeight > viewportHeight - padding) {
         // Adjust to fit but keep below with minimum spacing
         top = Math.max(rect.bottom + minSpacing, viewportHeight - padding - tooltipHeight);
-        // Final safety check: ensure we're never closer than 20px
-        if (top < rect.bottom + 20) {
-          top = rect.bottom + 20; // Minimum spacing to avoid covering
+        // Final safety check: ensure we maintain minimum spacing
+        if (top < rect.bottom + 30) {
+          top = rect.bottom + 30; // Minimum spacing to avoid covering
         }
       }
     } else {
@@ -304,7 +390,7 @@ const HelpOnboarding: React.FC<HelpOnboardingProps> = ({ onComplete, onResetRead
           }
         } else {
           // Other steps: Generic adjustment
-          if (position === 'bottom' || (!position || position === 'bottom')) {
+          if (!position) {
             top = rect.bottom + spacing + Math.max(overlapTop, overlapBottom) + buffer;
           } else if (position === 'top') {
             top = rect.top - spacing - tooltipHeight - Math.max(overlapTop, overlapBottom) - buffer;
@@ -324,23 +410,30 @@ const HelpOnboarding: React.FC<HelpOnboardingProps> = ({ onComplete, onResetRead
     const tooltipRight = tooltipLeft + tooltipWidth;
     
     if (stepId === 'upload' && transform.includes('translate(-100%, -50%)')) {
-      // Step 2: Keep on left side, but ensure no overlap with element
-      // With translate(-100%, -50%), tooltipLeft = left - tooltipWidth
-      // We need: tooltipLeft + tooltipWidth (which is 'left') < rect.left - 30
+      // Step 2: Positioned on left - ensure no overlap and stays in viewport
+      // With translate(-100%, -50%), the tooltip extends to the left of the 'left' position
       const minGap = 30;
-      if (tooltipLeft < padding) {
-        left = padding + tooltipWidth; // Keep on left but within viewport
-      }
-      // Also check for overlap with element
-      const tooltipRightEdge = left; // With translate(-100%, -50%), right edge is at 'left'
-      if (tooltipRightEdge > rect.left - minGap) {
-        // Would overlap, move further left
-        left = rect.left - minGap - tooltipWidth;
-        if (left < padding) {
-          // Not enough space, position below instead
-          top = rect.bottom + 30;
-          left = rect.left + rect.width / 2;
-          transform = 'translateX(-50%)';
+      const tooltipActualLeft = left - tooltipWidth;
+
+      // Check if tooltip goes off left edge
+      if (tooltipActualLeft < padding) {
+        // Not enough space on left - fallback to positioning below
+        top = rect.bottom + 30;
+        left = rect.left + rect.width / 2;
+        transform = 'translateX(-50%)';
+      } else {
+        // Ensure there's a gap between tooltip and element
+        const tooltipRightEdge = left; // Right edge of tooltip is at 'left' position
+        if (tooltipRightEdge > rect.left - minGap) {
+          // Too close - move further left
+          left = rect.left - minGap;
+          // Check again if it goes off screen
+          if (left - tooltipWidth < padding) {
+            // Still not enough space - fallback to below
+            top = rect.bottom + 30;
+            left = rect.left + rect.width / 2;
+            transform = 'translateX(-50%)';
+          }
         }
       }
     } else {
@@ -370,14 +463,14 @@ const HelpOnboarding: React.FC<HelpOnboardingProps> = ({ onComplete, onResetRead
       // Keep it below, just adjust to fit within viewport
       // Always maintain minimum spacing of 12px to place tooltip right below highlighted element
       // Add extra padding at bottom to prevent cutoff
-      const bottomPadding = 30;
+      const bottomPadding = 50; // Increased to prevent text cutoff
       if (tooltipBottom > viewportHeight - padding - bottomPadding) {
         // Adjust top to fit, but keep it below the element with minimum spacing
-        top = Math.max(rect.bottom + 12, viewportHeight - padding - tooltipHeight - bottomPadding);
+        top = Math.max(rect.bottom + 30, viewportHeight - padding - tooltipHeight - bottomPadding);
       }
       // Final check: ensure minimum spacing is maintained
-      if (top < rect.bottom + 12) {
-        top = rect.bottom + 12; // Ensure proper spacing - right below the element
+      if (top < rect.bottom + 30) {
+        top = rect.bottom + 30; // Ensure proper spacing - right below the element
       }
       // Don't change transform - always keep it as 'translateX(-50%)' (below)
     } else {
@@ -404,50 +497,47 @@ const HelpOnboarding: React.FC<HelpOnboardingProps> = ({ onComplete, onResetRead
     
     // Calculate actual tooltip bounds
     let finalTop = top;
-    const actualTooltipTop = finalIsCenteredY 
-      ? top - tooltipHeight / 2 
-      : finalIsAbove 
-        ? top - tooltipHeight 
-        : top;
-    const actualTooltipBottom = actualTooltipTop + tooltipHeight;
-    
+
     // Ensure tooltip fits vertically - CRITICAL: Always keep entire tooltip visible
     // For step 1, NEVER move it above - always keep it below with small spacing
     if (stepId === 'number-of-images') {
       // Step 1: Always keep below, never move above
       // Ensure minimum spacing of 20px from the element (right below it)
+      // Use extra bottom padding to prevent cutoff
+      const step1BottomPadding = 50; // Extra padding at bottom for step 1
+
       // Recalculate actual bounds with current finalTop
-      const recalculatedTop = finalIsCenteredY 
-        ? finalTop - tooltipHeight / 2 
-        : finalIsAbove 
-          ? finalTop - tooltipHeight 
+      const recalculatedTop = finalIsCenteredY
+        ? finalTop - tooltipHeight / 2
+        : finalIsAbove
+          ? finalTop - tooltipHeight
           : finalTop;
       const recalculatedBottom = recalculatedTop + tooltipHeight;
-      
+
       if (recalculatedTop < padding) {
         // If tooltip is too high, move it down but keep it below the element
-        finalTop = rect.bottom + 20;
+        finalTop = rect.bottom + 5;
         transform = 'translateX(-50%)';
-      } else if (recalculatedBottom > viewportHeight - padding) {
+      } else if (recalculatedBottom > viewportHeight - step1BottomPadding) {
         // If tooltip goes off bottom, adjust to ensure it's fully visible
         // Calculate the maximum top position that keeps the entire tooltip visible
-        const maxTop = viewportHeight - padding - tooltipHeight;
+        const maxTop = viewportHeight - step1BottomPadding - tooltipHeight;
         // But don't go above the element (keep minimum spacing)
-        finalTop = Math.max(rect.bottom + 20, Math.min(finalTop, maxTop));
+        finalTop = Math.max(rect.bottom + 5, Math.min(finalTop, maxTop));
         transform = 'translateX(-50%)';
         // Final safety check - ensure tooltip is fully within viewport
         const finalRecalculatedTop = finalTop;
         const finalRecalculatedBottom = finalRecalculatedTop + tooltipHeight;
-        if (finalRecalculatedBottom > viewportHeight - padding) {
-          finalTop = viewportHeight - padding - tooltipHeight;
+        if (finalRecalculatedBottom > viewportHeight - step1BottomPadding) {
+          finalTop = viewportHeight - step1BottomPadding - tooltipHeight;
         }
         if (finalRecalculatedTop < padding) {
           finalTop = padding;
         }
       } else {
         // Ensure we maintain minimum spacing
-        if (finalTop < rect.bottom + 20) {
-          finalTop = rect.bottom + 20;
+        if (finalTop < rect.bottom + 5) {
+          finalTop = rect.bottom + 5;
         }
       }
     } else {
@@ -487,40 +577,39 @@ const HelpOnboarding: React.FC<HelpOnboardingProps> = ({ onComplete, onResetRead
         }
       }
     }
-    
+
+    // Get actual tooltip dimensions from DOM if available - declare early for use below
+    const actualTooltipWidth = overlayRef.current
+      ? overlayRef.current.offsetWidth || tooltipWidth
+      : tooltipWidth;
+
     const finalIsCenteredX = transform.includes('translateX(-50%)') || transform.includes('translate(-50%');
-    let finalLeft;
-    
+    let finalLeft = left; // Initialize with the calculated left position
+
     // For step 2, preserve left positioning and ensure no overlap
     if (stepId === 'upload' && transform.includes('translate(-100%, -50%)')) {
-      // Step 2: Keep on left side, but ensure no overlap with element
-      // With translate(-100%, -50%), the tooltip's right edge is at 'left'
-      // We need: left (tooltip right edge) < rect.left - 30 (minimum spacing)
-      const minGap = 40; // Increased gap to ensure no overlap
-      finalLeft = Math.max(padding, left);
-      
-      // CRITICAL: Verify no overlap - tooltip's right edge must be at least minGap pixels from element's left edge
-      // With translate(-100%, -50%), the tooltip's right edge is at 'finalLeft'
-      // So we need: finalLeft < rect.left - minGap
-      if (finalLeft >= rect.left - minGap) {
-        // Would overlap, move further left
-        finalLeft = rect.left - minGap - tooltipWidth;
-        // If that would go off screen, we need to position it differently
-        if (finalLeft < padding) {
-          // Not enough space on left - position below the element instead
-          // We'll need to update the transform, but for now ensure it's at least at padding
-          // The transform will be handled by the vertical positioning logic
-          finalLeft = padding;
-        }
+      // Step 2: Positioned on left - ensure proper spacing and viewport bounds
+      const minGap = 30;
+      const tooltipActualLeft = finalLeft - actualTooltipWidth;
+      const tooltipRightEdge = finalLeft;
+
+      // Ensure tooltip doesn't go off left edge
+      if (tooltipActualLeft < padding) {
+        // Adjust to fit within viewport
+        finalLeft = padding + actualTooltipWidth;
       }
-      
-      // Double-check: recalculate tooltip bounds and verify no overlap
-      const tooltipRightEdge = finalLeft; // With translate(-100%, -50%), right edge is at finalLeft
-      const tooltipLeftEdge = finalLeft - tooltipWidth;
-      if (tooltipRightEdge >= rect.left - minGap || tooltipLeftEdge < padding) {
-        // Still overlapping or off screen - force position below
-        // This will be handled by checking if we need to change transform
-        finalLeft = rect.left + rect.width / 2; // Center below element
+
+      // Ensure there's a gap between tooltip and element
+      if (tooltipRightEdge > rect.left - minGap) {
+        // Too close - move further left
+        finalLeft = rect.left - minGap;
+
+        // Check if this pushes it off the left edge
+        if (finalLeft - actualTooltipWidth < padding) {
+          // Not enough space on left - this will be handled by switching to below
+          // Mark that we need to reposition
+          finalLeft = rect.left + rect.width / 2;
+        }
       }
     } else {
       // For other steps, allow normal horizontal adjustment
@@ -564,22 +653,23 @@ const HelpOnboarding: React.FC<HelpOnboardingProps> = ({ onComplete, onResetRead
     // For step 1, ensure we maintain minimum spacing from element AND stay within viewport
     if (stepId === 'number-of-images') {
       // Calculate minimum top to avoid overlapping with element
-      const minTopToAvoidOverlap = rect.bottom + 12; // Minimum spacing from element
-      
+      const minTopToAvoidOverlap = rect.bottom + 5; // Minimum spacing from element
+      const step1BottomPadding = 50; // Extra bottom padding for step 1 to prevent cutoff
+
       // Aggressively check and fix bottom cutoff
-      if (finalActualBottom > viewportHeight - safePadding) {
+      if (finalActualBottom > viewportHeight - step1BottomPadding) {
         // Tooltip goes off bottom - calculate exact position to keep it fully visible
-        const targetBottom = viewportHeight - safePadding;
+        const targetBottom = viewportHeight - step1BottomPadding;
         const targetTop = targetBottom - actualRenderedHeight;
         // But don't go above the element
         boundedTop = Math.max(minTopToAvoidOverlap, targetTop);
-        
+
         // Double-check: recalculate with new boundedTop
         const recalcActualTop = boundedTop;
         const recalcActualBottom = recalcActualTop + actualRenderedHeight;
-        if (recalcActualBottom > viewportHeight - safePadding) {
+        if (recalcActualBottom > viewportHeight - step1BottomPadding) {
           // Still doesn't fit - position at absolute bottom
-          boundedTop = viewportHeight - safePadding - actualRenderedHeight;
+          boundedTop = viewportHeight - step1BottomPadding - actualRenderedHeight;
           // But ensure we don't go above element
           if (boundedTop < minTopToAvoidOverlap) {
             boundedTop = minTopToAvoidOverlap;
@@ -593,35 +683,38 @@ const HelpOnboarding: React.FC<HelpOnboardingProps> = ({ onComplete, onResetRead
         boundedTop = Math.max(boundedTop, minTopToAvoidOverlap);
       }
     } else if (stepId === 'upload') {
-      // For step 2, tooltip is on the left side (horizontally offset), so no vertical overlap
-      // Just ensure it's within viewport vertically
-      if (finalActualTop < safePadding) {
-        // For centered tooltip, adjust the center point
-        if (finalIsCenteredYCheck) {
+      // For step 2, ensure it's within viewport
+      // Check if positioned on left or right (side positioning)
+      const isLeftPositioned = transform.includes('translate(-100%, -50%)');
+      const isRightPositioned = transform.includes('translateY(-50%)') && !transform.includes('translateX');
+
+      if (isLeftPositioned || isRightPositioned) {
+        // Positioned on side - ensure vertical centering fits
+        const actualTop = finalTop - actualRenderedHeight / 2;
+        const actualBottom = finalTop + actualRenderedHeight / 2;
+
+        if (actualTop < safePadding) {
+          // Too high - adjust down
           boundedTop = safePadding + actualRenderedHeight / 2;
-        } else {
-          boundedTop = safePadding;
-        }
-      } else if (finalActualBottom > viewportHeight - safePadding) {
-        // For centered tooltip, adjust the center point
-        if (finalIsCenteredYCheck) {
+        } else if (actualBottom > viewportHeight - safePadding) {
+          // Too low - adjust up
           boundedTop = viewportHeight - safePadding - actualRenderedHeight / 2;
         } else {
-          boundedTop = viewportHeight - safePadding - actualRenderedHeight;
+          boundedTop = finalTop; // Keep as is
         }
-        // Double-check it's not too high
-        const recalcActualTop = finalIsCenteredYCheck 
-          ? boundedTop - actualRenderedHeight / 2 
-          : boundedTop;
-        if (recalcActualTop < safePadding) {
-          if (finalIsCenteredYCheck) {
-            boundedTop = safePadding + actualRenderedHeight / 2;
-          } else {
+      } else {
+        // Positioned below
+        if (finalActualTop < safePadding) {
+          boundedTop = safePadding;
+        } else if (finalActualBottom > viewportHeight - safePadding) {
+          boundedTop = viewportHeight - safePadding - actualRenderedHeight;
+          if (boundedTop < safePadding) {
             boundedTop = safePadding;
           }
+        } else {
+          boundedTop = finalTop; // Keep as is
         }
       }
-      // Don't adjust if it's already within bounds - preserve the left-side positioning
     } else {
       // For other steps, normal bounds checking with aggressive bottom check
       if (finalActualTop < safePadding) {
@@ -659,7 +752,6 @@ const HelpOnboarding: React.FC<HelpOnboardingProps> = ({ onComplete, onResetRead
     // Final verification: ensure the tooltip will actually fit
     // IMPORTANT: Re-check viewport height here in case it changed during resize
     const currentViewportHeight = window.innerHeight;
-    const currentViewportWidth = window.innerWidth;
     
     // Use actual rendered height from DOM - wait for it to be fully rendered
     let finalTooltipHeight = actualRenderedHeight;
@@ -683,7 +775,8 @@ const HelpOnboarding: React.FC<HelpOnboardingProps> = ({ onComplete, onResetRead
     const finalVerificationBottom = finalVerificationTop + finalTooltipHeight;
     
     // CRITICAL: Ensure bottom is always within CURRENT viewport with extra padding for buttons
-    const bottomPadding = safePadding + 10; // Extra padding to ensure buttons are visible
+    // Use extra padding for step 1 to prevent text cutoff
+    const bottomPadding = stepId === 'number-of-images' ? 50 : (safePadding + 10); // Extra padding to ensure buttons are visible
     const maxBottom = currentViewportHeight - bottomPadding;
     
     if (finalVerificationBottom > maxBottom) {
@@ -719,7 +812,7 @@ const HelpOnboarding: React.FC<HelpOnboardingProps> = ({ onComplete, onResetRead
         
         // Ensure minimum spacing from element for step 1
         if (stepId === 'number-of-images') {
-          const minTopToAvoidOverlap = rect.bottom + 12;
+          const minTopToAvoidOverlap = rect.bottom + 5;
           if (boundedTop < minTopToAvoidOverlap) {
             // Can't fit without overlapping - position as high as possible while maintaining spacing
             boundedTop = Math.max(minTopToAvoidOverlap, maxBottom - finalTooltipHeight);
@@ -758,34 +851,13 @@ const HelpOnboarding: React.FC<HelpOnboardingProps> = ({ onComplete, onResetRead
       // Tooltip extends beyond bottom - move it up
       const targetBottom = currentViewportHeight - bottomPadding;
       const targetTop = targetBottom - finalTooltipHeight;
-      
-      // Adjust boundedTop to achieve targetTop
-      if (finalIsCenteredYCheck) {
-        boundedTop = targetTop + finalTooltipHeight / 2;
-      } else if (finalIsAboveCheck) {
-        boundedTop = targetTop + finalTooltipHeight;
-      } else {
-        boundedTop = targetTop;
-      }
-      
-      // Recalculate absolute positions
-      absoluteTop = finalIsCenteredYCheck 
-        ? boundedTop - finalTooltipHeight / 2 
-        : finalIsAboveCheck 
-          ? boundedTop - finalTooltipHeight 
-          : boundedTop;
+
+      // Directly set boundedTop to targetTop for "below" positioning
+      boundedTop = targetTop;
+
+      // Recalculate to verify
+      absoluteTop = boundedTop;
       absoluteBottom = absoluteTop + finalTooltipHeight;
-      
-      // If still doesn't fit (shouldn't happen, but double-check)
-      if (absoluteBottom > currentViewportHeight - bottomPadding) {
-        // Force it to fit by adjusting boundedTop directly
-        boundedTop = currentViewportHeight - bottomPadding - finalTooltipHeight;
-        if (finalIsCenteredYCheck) {
-          boundedTop = currentViewportHeight - bottomPadding - finalTooltipHeight / 2;
-        } else if (finalIsAboveCheck) {
-          boundedTop = currentViewportHeight - bottomPadding - finalTooltipHeight;
-        }
-      }
     }
     
     // Ensure top doesn't go off screen
@@ -835,12 +907,7 @@ const HelpOnboarding: React.FC<HelpOnboardingProps> = ({ onComplete, onResetRead
     // CRITICAL: Final overlap check for ALL steps - ensure tooltip NEVER overlaps with highlighted element
     // This runs after ALL other calculations to catch any edge cases
     const minGap = 50; // Minimum gap to ensure no overlap
-    
-    // Get actual tooltip dimensions from DOM if available
-    const actualTooltipWidth = overlayRef.current 
-      ? overlayRef.current.offsetWidth || tooltipWidth
-      : tooltipWidth;
-    
+
     // Calculate tooltip bounds based on final position and transform
     let finalTooltipRect = {
       left: 0,
@@ -881,17 +948,49 @@ const HelpOnboarding: React.FC<HelpOnboardingProps> = ({ onComplete, onResetRead
     const buffer = minGap;
     const overlapsHorizontally = !(finalTooltipRect.right < rect.left - buffer || finalTooltipRect.left > rect.right + buffer);
     const overlapsVertically = !(finalTooltipRect.bottom < rect.top - buffer || finalTooltipRect.top > rect.bottom + buffer);
-    
+
     if (overlapsHorizontally && !overlapsVertically) {
       // Overlapping horizontally - reposition
       if (stepId === 'upload') {
-        // Step 2: Try to move further left, or position below
-        if (rect.left - minGap - actualTooltipWidth >= padding) {
-          // Can fit on left with more spacing
-          finalLeft = rect.left - minGap - actualTooltipWidth;
+        // Step 2: Keep on left/right side or position below as fallback
+        const spaceOnLeft = rect.left - padding;
+        const spaceOnRight = viewportWidth - rect.right - padding;
+        const requiredSpace = actualTooltipWidth; // No buffer for step 2
+
+        if (spaceOnLeft >= requiredSpace) {
+          // Keep on left
+          boundedTop = rect.top + rect.height / 2;
+          finalLeft = rect.left - spacing;
           transform = 'translate(-100%, -50%)';
+        } else if (spaceOnRight >= requiredSpace) {
+          // Position on right
+          boundedTop = rect.top + rect.height / 2;
+          finalLeft = rect.right + spacing;
+          transform = 'translateY(-50%)';
         } else {
-          // Not enough space on left - position below
+          // Not enough space on either side - position below
+          boundedTop = rect.bottom + 30;
+          finalLeft = rect.left + rect.width / 2;
+          transform = 'translateX(-50%)';
+        }
+      } else if (stepId === 'upload') {
+        // Step 2: Keep on left/right or fallback to below
+        const spaceOnLeft = rect.left - padding;
+        const spaceOnRight = viewportWidth - rect.right - padding;
+        const requiredSpace = actualTooltipWidth; // No buffer for step 2
+
+        if (spaceOnLeft >= requiredSpace) {
+          // Position on left
+          boundedTop = rect.top + rect.height / 2;
+          finalLeft = rect.left - spacing;
+          transform = 'translate(-100%, -50%)';
+        } else if (spaceOnRight >= requiredSpace) {
+          // Position on right
+          boundedTop = rect.top + rect.height / 2;
+          finalLeft = rect.right + spacing;
+          transform = 'translateY(-50%)';
+        } else {
+          // Position below
           boundedTop = rect.bottom + 30;
           finalLeft = rect.left + rect.width / 2;
           transform = 'translateX(-50%)';
@@ -906,7 +1005,7 @@ const HelpOnboarding: React.FC<HelpOnboardingProps> = ({ onComplete, onResetRead
       // Overlapping vertically - move further away
       if (stepId === 'number-of-images') {
         // Step 1: Ensure it's below with proper spacing
-        boundedTop = rect.bottom + 30;
+        boundedTop = rect.bottom + 5;
         finalLeft = rect.left + rect.width / 2;
         transform = 'translateX(-50%)';
       } else {
@@ -916,10 +1015,35 @@ const HelpOnboarding: React.FC<HelpOnboardingProps> = ({ onComplete, onResetRead
         transform = 'translateX(-50%)';
       }
     } else if (overlapsHorizontally && overlapsVertically) {
-      // Overlapping both horizontally and vertically - FORCE position below
-      boundedTop = rect.bottom + 30;
-      finalLeft = rect.left + rect.width / 2;
-      transform = 'translateX(-50%)';
+      // Overlapping both horizontally and vertically - reposition based on step
+      if (stepId === 'upload') {
+        // Step 2: Try left, then right, then below
+        const spaceOnLeft = rect.left - padding;
+        const spaceOnRight = viewportWidth - rect.right - padding;
+        const requiredSpace = actualTooltipWidth; // No buffer for step 2
+
+        if (spaceOnLeft >= requiredSpace) {
+          // Position on left
+          boundedTop = rect.top + rect.height / 2;
+          finalLeft = rect.left - 30;
+          transform = 'translate(-100%, -50%)';
+        } else if (spaceOnRight >= requiredSpace) {
+          // Position on right
+          boundedTop = rect.top + rect.height / 2;
+          finalLeft = rect.right + 30;
+          transform = 'translateY(-50%)';
+        } else {
+          // Go below as fallback
+          boundedTop = rect.bottom + 30;
+          finalLeft = rect.left + rect.width / 2;
+          transform = 'translateX(-50%)';
+        }
+      } else {
+        // Other steps: position below
+        boundedTop = rect.bottom + 30;
+        finalLeft = rect.left + rect.width / 2;
+        transform = 'translateX(-50%)';
+      }
     }
     
     // Final double-check: recalculate tooltip bounds with new position
@@ -928,16 +1052,40 @@ const HelpOnboarding: React.FC<HelpOnboardingProps> = ({ onComplete, onResetRead
       finalTooltipRect.right = finalLeft + actualTooltipWidth / 2;
       finalTooltipRect.top = boundedTop;
       finalTooltipRect.bottom = boundedTop + actualRenderedHeight;
-      
+
       // Verify no overlap with new position
       const stillOverlapsH = !(finalTooltipRect.right < rect.left - buffer || finalTooltipRect.left > rect.right + buffer);
       const stillOverlapsV = !(finalTooltipRect.bottom < rect.top - buffer || finalTooltipRect.top > rect.bottom + buffer);
-      
+
       if (stillOverlapsH || stillOverlapsV) {
         // Still overlapping - move even further away
         boundedTop = rect.bottom + 50; // Extra spacing
         finalLeft = rect.left + rect.width / 2;
         transform = 'translateX(-50%)';
+      }
+    } else if (transform.includes('translate(-100%, -50%)')) {
+      // Left positioning - recalculate bounds
+      finalTooltipRect.left = finalLeft - actualTooltipWidth;
+      finalTooltipRect.right = finalLeft;
+      finalTooltipRect.top = boundedTop - actualRenderedHeight / 2;
+      finalTooltipRect.bottom = boundedTop + actualRenderedHeight / 2;
+
+      // Verify no overlap
+      const stillOverlapsH = !(finalTooltipRect.right < rect.left - buffer || finalTooltipRect.left > rect.right + buffer);
+      const stillOverlapsV = !(finalTooltipRect.bottom < rect.top - buffer || finalTooltipRect.top > rect.bottom + buffer);
+
+      if (stillOverlapsH || stillOverlapsV) {
+        // Try to move further left or switch to below
+        const spaceOnLeft = rect.left - padding;
+        if (spaceOnLeft >= actualTooltipWidth + buffer + 50) {
+          // Move further left
+          finalLeft = rect.left - buffer - 50;
+        } else {
+          // Not enough space - switch to below
+          boundedTop = rect.bottom + 50;
+          finalLeft = rect.left + rect.width / 2;
+          transform = 'translateX(-50%)';
+        }
       }
     }
     
@@ -968,7 +1116,7 @@ const HelpOnboarding: React.FC<HelpOnboardingProps> = ({ onComplete, onResetRead
       
       // For step 1, ensure we maintain minimum spacing from element
       if (stepId === 'number-of-images') {
-        const minTopToAvoidOverlap = rect.bottom + 12;
+        const minTopToAvoidOverlap = rect.bottom + 5;
         if (boundedTop < minTopToAvoidOverlap) {
           // Can't fit without overlapping - position as high as possible
           boundedTop = Math.max(minTopToAvoidOverlap, maxAllowedTop);
@@ -1008,10 +1156,34 @@ const HelpOnboarding: React.FC<HelpOnboardingProps> = ({ onComplete, onResetRead
     
     // If overlapping, reposition to avoid overlap
     if (overlapsH && overlapsV) {
-      // Overlapping both horizontally and vertically - position below element
-      boundedTop = rect.bottom + overlapBuffer;
-      finalLeft = rect.left + rect.width / 2;
-      transform = 'translateX(-50%)';
+      // Overlapping both horizontally and vertically - choose best position
+      if (stepId === 'upload') {
+        const spaceOnLeft = rect.left - padding;
+        const spaceOnRight = viewportWidth - rect.right - padding;
+        const requiredSpace = actualTooltipWidth; // No buffer for step 2
+
+        if (spaceOnLeft >= requiredSpace) {
+          // Position on left
+          boundedTop = rect.top + rect.height / 2;
+          finalLeft = rect.left - overlapBuffer;
+          transform = 'translate(-100%, -50%)';
+        } else if (spaceOnRight >= requiredSpace) {
+          // Position on right
+          boundedTop = rect.top + rect.height / 2;
+          finalLeft = rect.right + overlapBuffer;
+          transform = 'translateY(-50%)';
+        } else {
+          // Position below
+          boundedTop = rect.bottom + overlapBuffer;
+          finalLeft = rect.left + rect.width / 2;
+          transform = 'translateX(-50%)';
+        }
+      } else {
+        // Other steps: position below element
+        boundedTop = rect.bottom + overlapBuffer;
+        finalLeft = rect.left + rect.width / 2;
+        transform = 'translateX(-50%)';
+      }
       
       // Recalculate bounds
       tooltipFinalBounds.top = boundedTop;
@@ -1051,24 +1223,37 @@ const HelpOnboarding: React.FC<HelpOnboardingProps> = ({ onComplete, onResetRead
         ? finalLeft
         : finalLeft + actualTooltipWidth / 2;
     } else if (overlapsV) {
-      // Overlapping vertically - move further away
+      // Overlapping vertically - adjust based on step
       if (stepId === 'number-of-images') {
         // Step 1: Ensure it's below with proper spacing
         boundedTop = rect.bottom + overlapBuffer;
         finalLeft = rect.left + rect.width / 2;
         transform = 'translateX(-50%)';
+      } else if (stepId === 'upload' && transform.includes('translate(-100%, -50%)')) {
+        // Step 2 on left: Keep on left, just adjust vertical centering to avoid overlap
+        boundedTop = rect.top + rect.height / 2;
+        // Don't change transform - keep it on the left
       } else {
         // Other steps: position below
         boundedTop = rect.bottom + overlapBuffer;
         finalLeft = rect.left + rect.width / 2;
         transform = 'translateX(-50%)';
       }
-      
-      // Recalculate bounds
-      tooltipFinalBounds.top = boundedTop;
-      tooltipFinalBounds.bottom = boundedTop + finalTooltipHeight;
-      tooltipFinalBounds.left = finalLeft - actualTooltipWidth / 2;
-      tooltipFinalBounds.right = finalLeft + actualTooltipWidth / 2;
+
+      // Recalculate bounds based on current transform
+      if (transform.includes('translate(-100%, -50%)')) {
+        // Left positioning
+        tooltipFinalBounds.top = boundedTop - finalTooltipHeight / 2;
+        tooltipFinalBounds.bottom = boundedTop + finalTooltipHeight / 2;
+        tooltipFinalBounds.left = finalLeft - actualTooltipWidth;
+        tooltipFinalBounds.right = finalLeft;
+      } else {
+        // Below positioning
+        tooltipFinalBounds.top = boundedTop;
+        tooltipFinalBounds.bottom = boundedTop + finalTooltipHeight;
+        tooltipFinalBounds.left = finalLeft - actualTooltipWidth / 2;
+        tooltipFinalBounds.right = finalLeft + actualTooltipWidth / 2;
+      }
     }
     
     // Double-check: verify no overlap after repositioning
@@ -1076,65 +1261,46 @@ const HelpOnboarding: React.FC<HelpOnboardingProps> = ({ onComplete, onResetRead
     const finalOverlapsV = !(tooltipFinalBounds.bottom < rect.top - overlapBuffer || tooltipFinalBounds.top > rect.bottom + overlapBuffer);
     
     if (finalOverlapsH || finalOverlapsV) {
-      // Still overlapping - FORCE position below with extra spacing
-      boundedTop = rect.bottom + overlapBuffer + 20; // Extra spacing
-      finalLeft = rect.left + rect.width / 2;
-      transform = 'translateX(-50%)';
-      
-      // Recalculate one more time to verify
-      tooltipFinalBounds.top = boundedTop;
-      tooltipFinalBounds.bottom = boundedTop + finalTooltipHeight;
-      tooltipFinalBounds.left = finalLeft - actualTooltipWidth / 2;
-      tooltipFinalBounds.right = finalLeft + actualTooltipWidth / 2;
-      
-      // If STILL overlapping, move even further down
-      const stillOverlaps = !(tooltipFinalBounds.right < rect.left - overlapBuffer || tooltipFinalBounds.left > rect.right + overlapBuffer) ||
-                           !(tooltipFinalBounds.bottom < rect.top - overlapBuffer || tooltipFinalBounds.top > rect.bottom + overlapBuffer);
-      if (stillOverlaps) {
-        boundedTop = rect.bottom + overlapBuffer + 40; // Even more spacing
+      // Still overlapping - reposition based on step
+      if (stepId === 'upload' && transform.includes('translate(-100%, -50%)')) {
+        // Step 2 on left: Move further left or switch to below if not enough space
+        const spaceOnLeft = rect.left - padding;
+        if (spaceOnLeft >= actualTooltipWidth + overlapBuffer + 40) {
+          // Move further left
+          finalLeft = rect.left - overlapBuffer - 40;
+          // Keep left transform
+        } else {
+          // Not enough space on left - switch to below
+          boundedTop = rect.bottom + overlapBuffer + 20;
+          finalLeft = rect.left + rect.width / 2;
+          transform = 'translateX(-50%)';
+        }
+      } else {
+        // Other steps: position below with extra spacing
+        boundedTop = rect.bottom + overlapBuffer + 20;
+        finalLeft = rect.left + rect.width / 2;
+        transform = 'translateX(-50%)';
+      }
+
+      // Recalculate one more time based on transform
+      if (transform.includes('translate(-100%, -50%)')) {
+        tooltipFinalBounds.top = boundedTop - finalTooltipHeight / 2;
+        tooltipFinalBounds.bottom = boundedTop + finalTooltipHeight / 2;
+        tooltipFinalBounds.left = finalLeft - actualTooltipWidth;
+        tooltipFinalBounds.right = finalLeft;
+      } else {
+        tooltipFinalBounds.top = boundedTop;
+        tooltipFinalBounds.bottom = boundedTop + finalTooltipHeight;
+        tooltipFinalBounds.left = finalLeft - actualTooltipWidth / 2;
+        tooltipFinalBounds.right = finalLeft + actualTooltipWidth / 2;
       }
     }
     
-    // FINAL ABSOLUTE CHECK: For step 2, ALWAYS verify no overlap and FORCE below if needed
+    // Step 2: Verify no overlap with element (but don't force positioning)
+    // The smart positioning earlier already chose the best position
     if (stepId === 'upload') {
-      // Recalculate tooltip bounds one final time
-      let finalTooltipTop = boundedTop;
-      let finalTooltipBottom = boundedTop + finalTooltipHeight;
-      let finalTooltipLeft = finalLeft - actualTooltipWidth / 2;
-      let finalTooltipRight = finalLeft + actualTooltipWidth / 2;
-      
-      if (transform.includes('translate(-100%')) {
-        // Left positioning - recalculate bounds
-        finalTooltipRight = finalLeft;
-        finalTooltipLeft = finalLeft - actualTooltipWidth;
-        finalTooltipTop = boundedTop - finalTooltipHeight / 2;
-        finalTooltipBottom = boundedTop + finalTooltipHeight / 2;
-      }
-      
-      // Check for ANY overlap with element
-      const strictBuffer = 50; // Very strict buffer
-      const overlapsH = !(finalTooltipRight < rect.left - strictBuffer || finalTooltipLeft > rect.right + strictBuffer);
-      const overlapsV = !(finalTooltipBottom < rect.top - strictBuffer || finalTooltipTop > rect.bottom + strictBuffer);
-      
-      // If ANY overlap detected, FORCE position below
-      if (overlapsH || overlapsV || overlapsH && overlapsV) {
-        boundedTop = rect.bottom + strictBuffer;
-        finalLeft = rect.left + rect.width / 2;
-        transform = 'translateX(-50%)';
-        
-        // Recalculate one more time
-        finalTooltipTop = boundedTop;
-        finalTooltipBottom = boundedTop + finalTooltipHeight;
-        finalTooltipLeft = finalLeft - actualTooltipWidth / 2;
-        finalTooltipRight = finalLeft + actualTooltipWidth / 2;
-        
-        // If STILL overlapping, move even further down
-        const stillOverlaps = !(finalTooltipRight < rect.left - strictBuffer || finalTooltipLeft > rect.right + strictBuffer) ||
-                             !(finalTooltipBottom < rect.top - strictBuffer || finalTooltipTop > rect.bottom + strictBuffer);
-        if (stillOverlaps) {
-          boundedTop = rect.bottom + strictBuffer + 30;
-        }
-      }
+      // This check is already done - trust the earlier positioning logic
+      // No need to override here
     }
     
     // Now check viewport bounds - ensure tooltip fits within viewport
@@ -1149,10 +1315,15 @@ const HelpOnboarding: React.FC<HelpOnboardingProps> = ({ onComplete, onResetRead
         // Use the higher of the two: minimum spacing from element OR viewport constraint
         boundedTop = Math.max(minTopToAvoidOverlap, forcedMaxTop);
       } else if (stepId === 'upload') {
-        // Step 2: ALWAYS maintain spacing from element, even if it means going off viewport
-        // Overlap prevention is more important than viewport bounds
-        const minTopToAvoidOverlap = rect.bottom + overlapBuffer + 20; // Extra spacing
-        boundedTop = Math.max(minTopToAvoidOverlap, forcedMaxTop);
+        // Step 2: Maintain side positioning or fallback to below
+        if (transform.includes('translate(-100%, -50%)') || transform.includes('translateY(-50%)')) {
+          // Side positioning - keep it and ensure vertical centering fits
+          boundedTop = Math.max(padding + finalTooltipHeight / 2, Math.min(boundedTop, veryLatestViewportHeight - padding - finalTooltipHeight / 2));
+        } else {
+          // Position below but ensure it fits
+          const minTopToAvoidOverlap = rect.bottom + 20;
+          boundedTop = Math.min(minTopToAvoidOverlap, forcedMaxTop);
+        }
       } else {
         if (finalIsCenteredYCheck) {
           boundedTop = forcedMaxTop + finalTooltipHeight / 2;
@@ -1180,49 +1351,89 @@ const HelpOnboarding: React.FC<HelpOnboardingProps> = ({ onComplete, onResetRead
       }
     }
     
-    // ABSOLUTE FINAL CHECK FOR STEP 2: Right before returning, ALWAYS position below
-    // This is the last chance to prevent covering the drag and drop box
-    // For step 2, we ALWAYS position below, no exceptions
-    // Get FRESH element bounds to ensure accuracy
+    // Step 2: Final check to ensure tooltip is fully visible
     if (stepId === 'upload' && targetElement) {
-      // Get the absolute latest element bounds - this is critical for resize
       const freshRect = targetElement.getBoundingClientRect();
-      
-      // FORCE position below with very large spacing - no matter what
-      // This overrides ANY other positioning logic
-      const guaranteedSpacing = 100; // Very large guaranteed spacing to ensure no overlap
-      boundedTop = freshRect.bottom + guaranteedSpacing;
-      finalLeft = freshRect.left + freshRect.width / 2;
-      transform = 'translateX(-50%)';
-      
-      // Recalculate tooltip bounds to verify absolutely no overlap
-      const verifyTop = boundedTop;
-      const verifyBottom = boundedTop + finalTooltipHeight;
-      const verifyLeft = finalLeft - actualTooltipWidth / 2;
-      const verifyRight = finalLeft + actualTooltipWidth / 2;
-      
-      // Check if it would still overlap with a very strict buffer
-      const verifyBuffer = 80; // Very strict buffer
-      const wouldOverlapH = !(verifyRight < freshRect.left - verifyBuffer || verifyLeft > freshRect.right + verifyBuffer);
-      const wouldOverlapV = !(verifyBottom < freshRect.top - verifyBuffer || verifyTop > freshRect.bottom + verifyBuffer);
-      
-      // If somehow still overlapping, add even more spacing
-      if (wouldOverlapH || wouldOverlapV) {
-        boundedTop = freshRect.bottom + guaranteedSpacing + 60;
-      }
-      
-      // Final absolute check - if tooltip top is less than element bottom, force it down
-      if (boundedTop <= freshRect.bottom) {
-        boundedTop = freshRect.bottom + guaranteedSpacing;
+
+      // Handle different positioning transforms
+      if (transform === 'translate(-100%, -50%)') {
+        // Positioned on LEFT - ensure vertical centering stays within viewport
+        const actualTop = boundedTop - finalTooltipHeight / 2;
+        const actualBottom = boundedTop + finalTooltipHeight / 2;
+
+        if (actualTop < padding) {
+          boundedTop = padding + finalTooltipHeight / 2;
+        } else if (actualBottom > veryLatestViewportHeight - bottomPadding) {
+          boundedTop = veryLatestViewportHeight - bottomPadding - finalTooltipHeight / 2;
+        }
+
+        // Ensure doesn't go off left edge
+        const tooltipLeft = finalLeft - actualTooltipWidth;
+        if (tooltipLeft < padding) {
+          // Try switching to right or below
+          const spaceOnRight = viewportWidth - freshRect.right - padding;
+          if (spaceOnRight >= actualTooltipWidth) {
+            // Switch to right
+            boundedTop = freshRect.top + freshRect.height / 2;
+            finalLeft = freshRect.right + 30;
+            transform = 'translateY(-50%)';
+          } else {
+            // Switch to below
+            boundedTop = freshRect.bottom + 30;
+            finalLeft = freshRect.left + freshRect.width / 2;
+            transform = 'translateX(-50%)';
+          }
+        }
+      } else if (transform === 'translateY(-50%)') {
+        // Positioned on RIGHT - ensure vertical centering stays within viewport
+        const actualTop = boundedTop - finalTooltipHeight / 2;
+        const actualBottom = boundedTop + finalTooltipHeight / 2;
+
+        if (actualTop < padding) {
+          boundedTop = padding + finalTooltipHeight / 2;
+        } else if (actualBottom > veryLatestViewportHeight - bottomPadding) {
+          boundedTop = veryLatestViewportHeight - bottomPadding - finalTooltipHeight / 2;
+        }
+
+        // Ensure doesn't go off right edge
+        const tooltipRight = finalLeft + actualTooltipWidth;
+        if (tooltipRight > viewportWidth - padding) {
+          // Switch to below
+          boundedTop = freshRect.bottom + 30;
+          finalLeft = freshRect.left + freshRect.width / 2;
+          transform = 'translateX(-50%)';
+        }
+      } else if (transform === 'translateX(-50%)') {
+        // Positioned below - ensure it fits
+        const actualBottom = boundedTop + finalTooltipHeight;
+        if (actualBottom > veryLatestViewportHeight - bottomPadding) {
+          boundedTop = veryLatestViewportHeight - bottomPadding - finalTooltipHeight;
+        }
       }
     }
     
+    // ABSOLUTE FINAL SAFETY CHECK: Ensure tooltip fits within viewport
+    // This is the last line of defense before returning
+    const finalBottomEdge = transform.includes('translateY(-50%)') || transform.includes('translate(-50%, -50%)')
+      ? boundedTop + finalTooltipHeight / 2
+      : transform.includes('translate(-50%, -100%)') || transform.includes('translate(-100%, -50%)')
+        ? boundedTop
+        : boundedTop + finalTooltipHeight;
+
+    // Use extra bottom padding for step 1 to prevent text cutoff
+    const finalBottomPadding = stepId === 'number-of-images' ? 50 : 35; // Extra padding at bottom
+    if (finalBottomEdge > currentViewportHeight - finalBottomPadding) {
+      const maxAllowedTop = currentViewportHeight - finalBottomPadding - finalTooltipHeight;
+      boundedTop = Math.max(padding, maxAllowedTop);
+    }
+
+    // Return final style (no caching for step 2 and other steps)
     return {
-      position: 'fixed',
+      position: 'fixed' as const,
       top: `${boundedTop}px`,
       left: `${finalLeft}px`,
       transform,
-      zIndex: 100000,
+      zIndex: 100002, // Higher than both backdrop (99998) and highlight (100001)
       maxWidth: `${maxTooltipWidth}px`,
       maxHeight: `${maxTooltipHeight}px`,
       width: 'auto'
@@ -1231,142 +1442,138 @@ const HelpOnboarding: React.FC<HelpOnboardingProps> = ({ onComplete, onResetRead
 
   // Find target element for current step
   useEffect(() => {
+    // Set transitioning state to hide overlay during step change
+    setIsTransitioning(true);
+
+    // Clear previous element, highlight, and tooltip immediately when step changes
+    setTargetElement(null);
+    setHighlightStyle({});
+    setTooltipStyle({});
+
     if (isCompleted || isSkipped || !currentStepData?.targetSelector) {
-      setTargetElement(null);
-      setHighlightStyle({});
+      setIsTransitioning(false);
+      return;
+    }
+
+    // For steps 3 and 4, they don't need target elements - end transition immediately
+    const stepId = currentStepData?.id;
+    const isStep3or4 = stepId === 'restore' || stepId === 'results';
+    if (isStep3or4) {
+      setIsTransitioning(false);
       return;
     }
 
     // Wait for DOM to be ready and element to be fully rendered
     const findElement = () => {
+      if (!currentStepData.targetSelector) {
+        return false;
+      }
+
       try {
         const element = document.querySelector(currentStepData.targetSelector) as HTMLElement;
         if (element) {
           // Verify element is actually visible and has dimensions
           const rect = element.getBoundingClientRect();
+          console.log('[Step ' + currentStepData.id + '] Found element with selector:', currentStepData.targetSelector, 'Rect:', rect);
           if (rect.width > 0 && rect.height > 0) {
-            console.log('[HelpOnboarding] Found target element:', {
-              selector: currentStepData.targetSelector,
-              element: element,
-              rect: rect,
-              className: element.className,
-              textContent: element.textContent?.trim()
-            });
+            console.log('[Step ' + currentStepData.id + '] Element is valid, setting targetElement');
             setTargetElement(element);
+            // Add delay before ending transition to let everything settle completely
+            setTimeout(() => {
+              setIsTransitioning(false);
+            }, 150);
             return true;
           } else {
             // Element exists but not yet rendered, try again
-            console.log('[HelpOnboarding] Element found but not yet rendered, retrying...');
+            console.log('[Step ' + currentStepData.id + '] Element has no dimensions, will retry');
             return false;
           }
         } else {
-          console.warn('[HelpOnboarding] Target element not found:', currentStepData.targetSelector);
+          console.log('[Step ' + currentStepData.id + '] Element not found for selector:', currentStepData.targetSelector);
           return false;
         }
       } catch (error) {
-        console.warn('[HelpOnboarding] Failed to find target element:', error);
         return false;
       }
     };
 
-    // Try immediately
-    if (!findElement()) {
-      // If not found, try after a short delay (for elements that render later)
-      const timeoutId = setTimeout(() => {
-        if (!findElement()) {
-          // Try one more time after a longer delay
-          setTimeout(() => {
-            findElement();
-          }, 100);
-        }
-      }, 50);
+    // For step 1 and step 2, use requestAnimationFrame to ensure consistent measurements
+    // This ensures we measure after the browser has completed rendering
+    const isStep1 = stepId === 'number-of-images';
+    const isStep2 = stepId === 'upload';
 
-      return () => clearTimeout(timeoutId);
+    if (isStep1 || isStep2) {
+      // Add a delay first to ensure old highlights are completely cleared, then use requestAnimationFrame
+      setTimeout(() => {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              if (!findElement()) {
+                setTimeout(() => {
+                  findElement();
+                }, 50);
+              }
+            });
+          });
+        });
+      }, 250);
+    } else {
+      // For other steps, use normal delay
+      const initialDelay = setTimeout(() => {
+        if (!findElement()) {
+          setTimeout(() => {
+            if (!findElement()) {
+              setTimeout(() => {
+                findElement();
+              }, 100);
+            }
+          }, 50);
+        }
+      }, 10);
+
+      return () => clearTimeout(initialDelay);
     }
   }, [currentStep, currentStepData, isCompleted, isSkipped]);
 
   // Update highlight position and size when target element changes or resizes
   useEffect(() => {
-    if (!targetElement) {
+    const stepId = currentStepData?.id;
+    const isStep3or4 = stepId === 'restore' || stepId === 'results';
+
+    console.log('[Highlight] Step:', stepId, 'Has targetElement:', !!targetElement, 'isStep3or4:', isStep3or4);
+
+    // For steps 3 and 4, don't show highlight box
+    if (!targetElement || isStep3or4) {
       setHighlightStyle({});
       return;
     }
 
-    const stepId = currentStepData?.id;
+    console.log('[Highlight] Will show highlight for step:', stepId);
+
     const isStep1 = stepId === 'number-of-images';
     const isStep2 = stepId === 'upload';
-    
-    // Check if we're returning to step 1 from another step OR if cache already exists
-    // This includes: returning from another step, page refresh, or clicking Help again
-    const hasCache = isStep1 && step1HighlightCache;
-    const isReturningToStep1 = hasCache && lastStepId !== null && lastStepId !== 'number-of-images';
-    const isInitialStep1WithCache = hasCache && lastStepId === null; // First time seeing step 1 but cache exists (page refresh or Help clicked)
-    
-    // For step 1, ALWAYS use cached position if it exists and is valid (returning, refresh, or Help clicked)
-    // But allow updates on window resize for responsiveness
-    // IMPORTANT: Set cache flag BEFORE any observers are set up to prevent them from firing
-    if (isReturningToStep1 || isInitialStep1WithCache) {
-      // Set flag FIRST (synchronously) before any async operations
-      shouldUseStep1Cache = true;
-      shouldUseCacheRef.current = true; // Also update ref for observer callbacks
-      // Use cached position immediately - this is the EXACT position from first calculation
-      // This restores the exact position from initial page load, refresh, or Help click
-      setHighlightStyle(step1HighlightCache);
-    } else if (!isStep1) {
-      // Clear flag when leaving step 1
-      shouldUseStep1Cache = false;
-      shouldUseCacheRef.current = false;
-    } else if (isStep1 && !step1HighlightCache) {
-      // On initial load of step 1 without cache, don't use cache (let it calculate and cache)
-      shouldUseStep1Cache = false;
-      shouldUseCacheRef.current = false;
-    }
-    
-    // Update last step ID
-    lastStepId = stepId;
 
-    const updateHighlight = (forceUpdate = false) => {
+    const updateHighlight = () => {
       // Verify element still exists and is in the DOM
       if (!targetElement || !document.contains(targetElement)) {
         return;
       }
-      
-      // For step 1, if we have a cache and should use it (and not forcing update),
-      // use the cached position instead of recalculating
-      // This prevents observers from overwriting the cached position when returning to step 1
-      // However, on window resize (forceUpdate=true) OR when cache flag is cleared, we ALWAYS recalculate
-      // CRITICAL: When forceUpdate=true OR cache flag is cleared, we MUST skip cache and recalculate
-      if (isStep1 && step1HighlightCache && !forceUpdate) {
-        // Only use cache if BOTH conditions are true:
-        // 1. We're not forcing an update (not resizing)
-        // 2. Cache flag is set (we're returning to step 1, not resizing)
-        if (shouldUseStep1Cache || shouldUseCacheRef.current) {
-          setHighlightStyle(step1HighlightCache);
-          return;
-        }
-        // If cache flag is NOT set (e.g., during resize), DON'T use cache - recalculate instead
-        // This ensures responsiveness during window resize
-      }
-      
-      // If we reach here, either:
-      // 1. forceUpdate=true (window resize) - recalculate
-      // 2. Cache flag is cleared (during resize) - recalculate
-      // 3. No cache exists - recalculate
-      // Proceed to recalculate with current element position
-      
-      // If we're on step 1 but no cache exists yet, or if forceUpdate=true (window resize),
-      // proceed with calculation to create/update cache
 
+      // Get element dimensions first to verify it's ready
       const rect = targetElement.getBoundingClientRect();
-      
+
+      console.log('[Highlight updateHighlight] Step:', stepId, 'Element rect:', rect, 'Element:', targetElement);
+
       // Skip if element has no dimensions (not yet rendered)
       if (rect.width === 0 && rect.height === 0) {
+        console.log('[Highlight updateHighlight] Skipping - element has no dimensions');
         return;
       }
-      
-      // For step 1, ensure element is actually positioned (not at 0,0 which indicates not ready)
-      if (isStep1 && rect.top === 0 && rect.left === 0) {
+
+      // Ensure element is actually positioned (not at 0,0 which indicates not ready)
+      if (rect.top === 0 && rect.left === 0) {
         // Element might not be positioned yet, skip this update
+        console.log('[Highlight updateHighlight] Skipping - element at 0,0');
         return;
       }
 
@@ -1375,63 +1582,57 @@ const HelpOnboarding: React.FC<HelpOnboardingProps> = ({ onComplete, onResetRead
       let padding = 0;
       let topOffset = 0; // Additional offset for top alignment
       let heightAdjustment = 0; // Additional adjustment for height
-      
+
       if (isStep1) {
-        // FIXED values - these should NEVER change to ensure consistent positioning
-        padding = 6; // Even padding on all sides for perfect centering
-        topOffset = -20; // Negative value moves highlight up (adjusted to prevent cutting off top)
-        heightAdjustment = 4; // Positive value makes the box taller at both top and bottom
-        
+        // FIXED values for perfect centering around the batch number buttons
+        padding = 10; // Even padding on all sides for perfect centering
+        topOffset = -6.5; // Move up by 6.5px to perfectly center around the buttons
+        heightAdjustment = 0; // No height adjustment - use element's natural height
+
         // Calculate highlight position using the element's bounding rect
-        // This should be consistent every time as long as the element position is stable
+        // Always recalculate to ensure consistency (no caching)
         const highlightTop = rect.top - padding + topOffset;
         const highlightLeft = rect.left - padding;
         const highlightWidth = rect.width + (padding * 2);
         const highlightHeight = rect.height + (padding * 2) + heightAdjustment;
-        
+
         const highlightStyleValue = {
           position: 'fixed' as const,
           top: `${highlightTop}px`,
           left: `${highlightLeft}px`,
           width: `${highlightWidth}px`,
           height: `${highlightHeight}px`,
-          zIndex: 99999
+          zIndex: 100001 // Higher than tooltip to ensure highlight is always visible
         };
-        
-        // Cache this position for step 1 in module-level variable so it persists across remounts
-        // CRITICAL: Only cache on FIRST calculation - NEVER overwrite once set
-        // On resize, we recalculate position for responsiveness but DON'T update cache
-        // This ensures when returning to step 1, it uses the original position from first page load
-        if (!step1HighlightCache) {
-          step1HighlightCache = highlightStyleValue;
-          console.log('[HelpOnboarding] ✅ Cached step 1 highlight position (original, never overwritten):', highlightStyleValue);
-        }
-        // Always update the display with current calculated position (for responsiveness)
-        // But cache remains at original position for when returning to step 1
+
+        // Set the highlight style
         setHighlightStyle(highlightStyleValue);
         return; // Early return for step 1 to avoid any other adjustments
       }
-      
-      // For other steps, use normal calculation
-      setHighlightStyle({
-        position: 'fixed',
+
+      // For step 2, use standard padding around the upload zone
+      if (isStep2) {
+        padding = 20; // Standard padding for upload zone highlight
+      }
+
+      // For other steps (step 2), use normal calculation WITHOUT caching
+      const highlightStyleValue = {
+        position: 'fixed' as const,
         top: `${rect.top - padding}px`,
         left: `${rect.left - padding}px`,
         width: `${rect.width + (padding * 2)}px`,
         height: `${rect.height + (padding * 2)}px`,
-        zIndex: 99999
-      });
+        zIndex: 100001 // Higher than tooltip to ensure highlight is always visible
+      };
+
+      console.log('[Highlight] Setting highlight style for step 2:', highlightStyleValue);
+
+      setHighlightStyle(highlightStyleValue);
     };
 
     // Use requestAnimationFrame to ensure DOM is fully updated
     // For step 2, calculate immediately to avoid delay/glitch
     const initialUpdate = () => {
-      // If returning to step 1 OR if cache exists (refresh/Help), skip initial update
-      // We already set the cached position, don't recalculate
-      if ((isReturningToStep1 || isInitialStep1WithCache) && step1HighlightCache) {
-        return;
-      }
-      
       if (isStep2) {
         // For step 2, calculate immediately with minimal delay to avoid glitch
         requestAnimationFrame(() => {
@@ -1470,7 +1671,7 @@ const HelpOnboarding: React.FC<HelpOnboardingProps> = ({ onComplete, onResetRead
                   // If still not ready, try one more time with longer delay
                   setTimeout(() => {
                     if (targetElement && document.contains(targetElement)) {
-                      requestAnimationFrame(updateHighlight);
+                      requestAnimationFrame(() => updateHighlight());
                     }
                   }, 150);
                 }
@@ -1486,23 +1687,13 @@ const HelpOnboarding: React.FC<HelpOnboardingProps> = ({ onComplete, onResetRead
     // Watch for resize/position changes
     // ResizeObserver watches element size changes, but we also need window resize for position changes
     const resizeObserver = new ResizeObserver(() => {
-      // For step 1, if we're using cache (returning to step 1), skip ResizeObserver
-      // ResizeObserver can fire when element becomes visible, which we don't want to recalculate
-      // But if window is being resized, handleResize will handle it
-      if (isStep1 && shouldUseCacheRef.current) {
-        // Skip ResizeObserver updates when using cache (only window resize should update)
-        return;
-      }
-      // For other cases or when not using cache, update immediately
+      // Always update on resize for responsive behavior
       updateHighlight();
     });
 
     if (targetElement) {
       resizeObserver.observe(targetElement);
-      // Only observe document body for non-step1 or when not using cache
-      // For step 1 with cache, document.body observer can fire when returning to step 1
-      // and cause unwanted recalculations
-      if (document.body && (!isStep1 || !shouldUseCacheRef.current)) {
+      if (document.body) {
         resizeObserver.observe(document.body);
       }
     }
@@ -1521,19 +1712,8 @@ const HelpOnboarding: React.FC<HelpOnboardingProps> = ({ onComplete, onResetRead
     };
 
     const handleResize = () => {
-      // On window resize, ALWAYS clear cache flag to allow recalculation
-      // This makes the highlight responsive and follow the element
-      if (isStep1) {
-        // Clear cache flag to allow recalculation (for responsiveness)
-        shouldUseStep1Cache = false;
-        shouldUseCacheRef.current = false;
-      }
-      
       // Update IMMEDIATELY with no delay for maximum responsiveness
-      // Recalculate highlight on resize to follow element position
-      // For step 1, it will use the same fixed offset values but recalculate based on new element position
-      // The cache is NOT updated - it remains at the original position
-      updateHighlight(true); // Force update on window resize - this bypasses all cache checks
+      updateHighlight();
     };
 
     window.addEventListener('scroll', handleScroll, true);
@@ -1555,13 +1735,23 @@ const HelpOnboarding: React.FC<HelpOnboardingProps> = ({ onComplete, onResetRead
     if (isCompleted || isSkipped) return;
 
     const updatePosition = () => {
+      // Don't update position during transition
+      if (isTransitioning) return;
+
       // Update immediately with no delay for maximum responsiveness
       const style = getOverlayStyle();
       setTooltipStyle(style);
     };
 
-    // Initial position
-    updatePosition();
+    // Wait for transition state to settle before initial position calculation
+    // This prevents race condition when currentStep changes
+    if (!isTransitioning) {
+      requestAnimationFrame(() => {
+        if (!isTransitioning) {
+          updatePosition();
+        }
+      });
+    }
     
     // Update on resize immediately with no delay for maximum responsiveness
     let resizeTimeout: NodeJS.Timeout | null = null;
@@ -1614,7 +1804,7 @@ const HelpOnboarding: React.FC<HelpOnboardingProps> = ({ onComplete, onResetRead
       window.removeEventListener('orientationchange', handleOrientationChange);
       observer.disconnect();
     };
-  }, [targetElement, currentStep, isCompleted, isSkipped, currentStepData]);
+  }, [targetElement, isCompleted, isSkipped, isTransitioning]);
 
   // Don't render if completed or skipped
   if (isCompleted || isSkipped) {
@@ -1622,12 +1812,14 @@ const HelpOnboarding: React.FC<HelpOnboardingProps> = ({ onComplete, onResetRead
   }
 
   const handleSkip = () => {
+    // Don't clear cache - keep it for consistency when reopening
     skip();
     onComplete?.();
   };
 
   const handleNext = () => {
     if (currentStep >= totalSteps - 1) {
+      // Don't clear cache - keep it for consistency when reopening
       complete();
       onComplete?.();
     } else {
@@ -1648,7 +1840,7 @@ const HelpOnboarding: React.FC<HelpOnboardingProps> = ({ onComplete, onResetRead
       />
 
       {/* Highlight overlay for target element */}
-      {targetElement && Object.keys(highlightStyle).length > 0 && (
+      {!isTransitioning && targetElement && Object.keys(highlightStyle).length > 0 && (
         <div
           className="onboarding-highlight"
           style={highlightStyle}
@@ -1659,7 +1851,11 @@ const HelpOnboarding: React.FC<HelpOnboardingProps> = ({ onComplete, onResetRead
       <div
         ref={overlayRef}
         className="onboarding-tooltip"
-        style={tooltipStyle}
+        style={{
+          ...tooltipStyle,
+          opacity: isTransitioning ? 0 : 1,
+          transition: 'opacity 0.1s ease-in-out'
+        }}
       >
         <div className="onboarding-header">
           <span className="onboarding-step-counter">

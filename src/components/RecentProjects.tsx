@@ -285,6 +285,29 @@ const RecentProjects: React.FC<RecentProjectsProps> = ({ sogniClient, onClose })
         <div className="recent-projects-content" ref={containerRef}>
           {activeTab === 'recents' ? (
             <>
+              {/* Expiry Info Banner */}
+              {initialized && visibleProjects.length > 0 && (
+                <div
+                  style={{
+                    margin: '0 16px 16px 16px',
+                    padding: '12px 16px',
+                    background: 'rgba(123, 163, 208, 0.1)',
+                    border: '1px solid rgba(123, 163, 208, 0.3)',
+                    borderRadius: '8px',
+                    fontSize: '0.85rem',
+                    color: 'var(--color-text-secondary)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}
+                >
+                  <span style={{ fontSize: '1.2rem' }}>💡</span>
+                  <div>
+                    <strong style={{ color: 'var(--color-text-primary)' }}>Images expire after 24 hours.</strong>
+                    {' '}Favorite images you want to keep permanently, or download them to your device.
+                  </div>
+                </div>
+              )}
               {/* Show loading state while initializing or loading first page */}
               {(!initialized || (loading && visibleProjects.length === 0)) && (
                 <div className="recent-projects-loading">
@@ -329,13 +352,6 @@ const RecentProjects: React.FC<RecentProjectsProps> = ({ sogniClient, onClose })
                     {/* Project Header */}
                     <div className="recent-project-header">
                       <div className="recent-project-info">
-                        <span
-                          className="recent-project-status"
-                          style={{ color: getStatusColor(project.status) }}
-                        >
-                          ●
-                        </span>
-                        <span className="recent-project-model">{project.model.name}</span>
                         <span className="recent-project-date">{formatDate(project.createdAt)}</span>
                       </div>
                       <button

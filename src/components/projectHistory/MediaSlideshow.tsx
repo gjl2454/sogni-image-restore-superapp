@@ -3,6 +3,7 @@ import type { SogniClient } from '@sogni-ai/sogni-client';
 import type { ArchiveProject, ArchiveJob } from '../../types/projectHistory';
 import { useMediaUrl } from '../../hooks/useMediaUrl';
 import { useFavorites } from '../../hooks/useFavorites';
+import { getCachedFavorite } from '../../utils/favoritesDB';
 import './MediaSlideshow.css';
 
 interface MediaSlideshowProps {
@@ -234,6 +235,98 @@ const MediaSlideshow: React.FC<MediaSlideshowProps> = ({
     }
   }, [onDeleteJob, project.id, currentJob]);
 
+  // Get the current image URL from SlideshowContent for download/print
+  const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null);
+
+  // Handle download
+  const handleDownload = useCallback(async () => {
+    if (!currentImageUrl || !currentJob) return;
+
+    try {
+      const filename = `restored-${currentJob.id}.png`;
+
+      // First, try to get the cached blob from IndexedDB (for favorited images)
+      const cachedFavorite = await getCachedFavorite(currentJob.id);
+
+      if (cachedFavorite) {
+        // Use the cached blob directly - most reliable for favorited images
+        console.log('[MediaSlideshow] Using cached blob for download');
+        const url = URL.createObjectURL(cachedFavorite.blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      } else {
+        // For non-cached images, proxy through backend to add proper download headers
+        // This triggers native OS download dialog
+        console.log('[MediaSlideshow] Using backend download proxy');
+        const downloadUrl = `/api/download?url=${encodeURIComponent(currentImageUrl)}&filename=${encodeURIComponent(filename)}`;
+
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+    } catch (error) {
+      console.error('[MediaSlideshow] Download failed:', error);
+      alert('Failed to download image. Please try again.');
+    }
+  }, [currentImageUrl, currentJob]);
+
+  // Handle print
+  const handlePrint = useCallback(() => {
+    if (!currentImageUrl) return;
+
+    // Create a new window for printing
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert('Please allow popups to print images.');
+      return;
+    }
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Print Restored Image</title>
+          <style>
+            body {
+              margin: 0;
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              min-height: 100vh;
+            }
+            img {
+              max-width: 100%;
+              max-height: 100vh;
+              object-fit: contain;
+            }
+            @media print {
+              body {
+                margin: 0;
+              }
+              img {
+                max-width: 100%;
+                height: auto;
+                page-break-inside: avoid;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <img src="${currentImageUrl}" onload="window.print(); window.close();" />
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  }, [currentImageUrl]);
+
   if (completedJobs.length === 0) {
     return (
       <div className="media-slideshow-overlay">
@@ -283,7 +376,6 @@ const MediaSlideshow: React.FC<MediaSlideshowProps> = ({
         {/* Header with close and delete buttons */}
         <div className="media-slideshow-top-bar">
           <div className="media-slideshow-header">
-            <span className="media-slideshow-title">{displayModelName}</span>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <span className="media-slideshow-counter">
                 {(() => {
@@ -300,6 +392,82 @@ const MediaSlideshow: React.FC<MediaSlideshowProps> = ({
                     : '0 / 0';
                 })()}
               </span>
+              <button
+                className="media-slideshow-action-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDownload();
+                }}
+                aria-label="Download image"
+                title="Download this image"
+                disabled={!currentImageUrl}
+                style={{
+                  background: 'rgba(123, 163, 208, 0.2)',
+                  border: '1px solid rgba(123, 163, 208, 0.4)',
+                  borderRadius: '6px',
+                  padding: '6px 12px',
+                  cursor: currentImageUrl ? 'pointer' : 'not-allowed',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  fontSize: '0.85rem',
+                  fontWeight: 500,
+                  color: 'var(--color-text-primary)',
+                  transition: 'all 0.2s ease',
+                  opacity: currentImageUrl ? 1 : 0.5
+                }}
+                onMouseEnter={(e) => {
+                  if (currentImageUrl) {
+                    e.currentTarget.style.background = 'rgba(123, 163, 208, 0.3)';
+                    e.currentTarget.style.transform = 'translateY(-1px)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(123, 163, 208, 0.2)';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                }}
+              >
+                <span>⬇️</span>
+                <span>Download</span>
+              </button>
+              <button
+                className="media-slideshow-action-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handlePrint();
+                }}
+                aria-label="Print image"
+                title="Print this image"
+                disabled={!currentImageUrl}
+                style={{
+                  background: 'rgba(123, 163, 208, 0.2)',
+                  border: '1px solid rgba(123, 163, 208, 0.4)',
+                  borderRadius: '6px',
+                  padding: '6px 12px',
+                  cursor: currentImageUrl ? 'pointer' : 'not-allowed',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  fontSize: '0.85rem',
+                  fontWeight: 500,
+                  color: 'var(--color-text-primary)',
+                  transition: 'all 0.2s ease',
+                  opacity: currentImageUrl ? 1 : 0.5
+                }}
+                onMouseEnter={(e) => {
+                  if (currentImageUrl) {
+                    e.currentTarget.style.background = 'rgba(123, 163, 208, 0.3)';
+                    e.currentTarget.style.transform = 'translateY(-1px)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(123, 163, 208, 0.2)';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                }}
+              >
+                <span>🖨️</span>
+                <span>Print</span>
+              </button>
               {onDeleteJob && (
                 <button
                   className="media-slideshow-delete"
@@ -356,6 +524,7 @@ const MediaSlideshow: React.FC<MediaSlideshowProps> = ({
           sogniClient={sogniClient}
           active={true}
           modelName={displayModelName}
+          onUrlLoaded={setCurrentImageUrl}
         />
       </div>
     </div>
@@ -367,9 +536,10 @@ interface SlideshowContentProps {
   sogniClient: SogniClient;
   active: boolean;
   modelName: string;
+  onUrlLoaded?: (url: string | null) => void;
 }
 
-function SlideshowContent({ job, sogniClient, active, modelName }: SlideshowContentProps) {
+function SlideshowContent({ job, sogniClient, active, modelName, onUrlLoaded }: SlideshowContentProps) {
   const { favorites } = useFavorites();
   
   // For placeholder jobs (from favorites not in visibleProjects), use the favorite's stored URL
@@ -407,6 +577,13 @@ function SlideshowContent({ job, sogniClient, active, modelName }: SlideshowCont
   // If mediaUrl is not available and we have a favorite, use the favorite URL as fallback
   const url = shouldUseFavoriteUrl ? favoriteData!.url : (mediaUrl || favoriteData?.url);
   const isLoading = shouldUseFavoriteUrl ? false : (loading && !favoriteData?.url);
+
+  // Notify parent when URL changes
+  useEffect(() => {
+    if (onUrlLoaded) {
+      onUrlLoaded(url || null);
+    }
+  }, [url, onUrlLoaded]);
 
   if (isLoading) {
     return (

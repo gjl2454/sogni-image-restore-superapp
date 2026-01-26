@@ -23,7 +23,7 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
     title: 'Upload Your Photo',
     description: 'Click here to upload a photo you want to restore. You can drag and drop an image or click to browse. Restoration will start automatically!',
     targetSelector: '[data-onboarding="upload-zone"]',
-    position: 'bottom'
+    position: 'right'
   },
   {
     id: 'restore',
