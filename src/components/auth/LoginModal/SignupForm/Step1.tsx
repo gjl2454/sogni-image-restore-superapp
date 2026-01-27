@@ -115,12 +115,16 @@ function Step1({ defaults, onContinue, onLogin }: Props) {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+            className="w-full text-white py-3 px-4 rounded-xl font-semibold transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+            style={{
+              background: 'linear-gradient(135deg, var(--sogni-pink), var(--sogni-purple))',
+              boxShadow: '0 4px 14px rgba(180, 205, 237, 0.4)'
+            }}
           >
             {isLoading ? 'Validating...' : 'Continue'}
           </button>
-          <div className="mt-4">
-            <span className="text-gray-600">Already have an account? </span>
+          <div className="mt-4" style={{ color: 'var(--color-text-secondary)' }}>
+            <span>Already have an account? </span>
             <LinkButton onClick={onLogin}>Sign in</LinkButton>
           </div>
         </FormFooter>

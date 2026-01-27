@@ -97,14 +97,19 @@ function Step2({ step1, initialState, onContinue, onReturn }: Props) {
           <button
             type="button"
             onClick={onReturn}
-            className="text-blue-600 hover:text-blue-800 mb-2"
+            className="mb-3 font-medium transition-colors hover:underline"
+            style={{ color: 'var(--color-text-secondary)' }}
           >
             ← Back
           </button>
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+            className="w-full text-white py-3 px-4 rounded-xl font-semibold transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+            style={{
+              background: 'linear-gradient(135deg, var(--sogni-pink), var(--sogni-purple))',
+              boxShadow: '0 4px 14px rgba(180, 205, 237, 0.4)'
+            }}
           >
             {isLoading ? 'Validating...' : 'Continue'}
           </button>

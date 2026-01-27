@@ -13,6 +13,9 @@ import type {
 // 24 hours TTL for projects
 const PROJECT_TTL = 24 * 60 * 60 * 1000;
 
+// Only show projects that use the restoration model (filter out other Sogni app projects)
+const RESTORATION_MODEL_ID = 'qwen_image_edit_2511_fp8_lightning';
+
 // Get Sogni API URL based on environment
 function getSogniRestUrl() {
   const hostname = window.location.hostname;
@@ -28,8 +31,8 @@ function getSogniRestUrl() {
   return 'https://api.sogni.ai';
 }
 
-// Fetch 50 jobs at a time to reduce round trips and loading flashes
-const PAGE_SIZE = 50;
+// Fetch more jobs to get restoration images that may be interspersed with other app jobs
+const PAGE_SIZE = 1000;
 
 // Map API job status to our JobStatus type
 const JOB_STATUS_MAP: Record<string, JobStatus> = {
@@ -126,6 +129,10 @@ export function useProjectHistory({ sogniClient }: UseProjectHistoryOptions) {
   const fetchingRef = useRef(false);
   // Track if we're prefetching the next page silently
   const prefetchingRef = useRef(false);
+  // Track latest state to avoid stale closure issues (especially with React StrictMode)
+  const stateRef = useRef(state);
+
+  stateRef.current = state; // Always keep in sync
 
   // Get hidden jobs from localStorage
   const getHiddenJobs = useCallback(() => {
@@ -182,29 +189,36 @@ export function useProjectHistory({ sogniClient }: UseProjectHistoryOptions) {
         const minTimestamp = Date.now() - PROJECT_TTL;
 
         // Filter out jobs older than 24 hours based on endTime
-        const recentJobs = jobs.filter((job) => job.endTime > minTimestamp);
+        // Also filter to only show jobs from this restoration app (using the specific model)
+        const recentJobs = jobs.filter((job) => {
+          // Must be recent
+          if (job.endTime <= minTimestamp) return false;
+          // Must use the restoration model (filter out other Sogni app projects)
+          if (job.parentRequest?.model?.id !== RESTORATION_MODEL_ID) return false;
+          return true;
+        });
 
         // Stop pagination if we've hit jobs older than 24 hours
-        const hasOldJobs = jobs.length > 0 && recentJobs.length < jobs.length;
+        // Note: We check specifically for old jobs, not jobs filtered by model
+        // (we should continue paginating even if current batch is from other apps)
+        const hasOldJobs = jobs.length > 0 && jobs.some((job) => job.endTime <= minTimestamp);
 
         // Get hidden jobs from localStorage first
         const hiddenJobsSet = getHiddenJobs();
-        console.log('[useProjectHistory] Starting fetch, hidden jobs count:', hiddenJobsSet.size);
 
-        // Build project index from existing projects
+        // Build project index - start fresh if offset is 0 (refresh), otherwise merge with existing
         // IMPORTANT: Create a deep copy to preserve createdAt values
         // Also filter out hidden jobs from existing projects
-        const projectIndex = prev.projects.reduce(
+        const projectIndex = offset === 0 ? {} : prev.projects.reduce(
           (acc: Record<string, ArchiveProject>, item) => {
             // Filter out hidden jobs from existing projects
             const visibleJobs = item.jobs.filter(job => !hiddenJobsSet.has(job.id));
-            
+
             // If all jobs are hidden, don't include this project
             if (visibleJobs.length === 0 && item.jobs.length > 0) {
-              console.log('[useProjectHistory] Skipping existing project with all jobs hidden:', item.id);
               return acc;
             }
-            
+
             acc[item.id] = {
               ...item,
               jobs: visibleJobs, // Only include visible jobs
@@ -227,21 +241,13 @@ export function useProjectHistory({ sogniClient }: UseProjectHistoryOptions) {
           // Skip jobs that are marked as hidden in localStorage
           // Use imgID since that's what we store in localStorage (job.id = item.imgID)
           if (hiddenJobsSet.has(job.imgID)) {
-            console.log('[useProjectHistory] Skipping hidden job:', job.imgID, 'from project:', job.parentRequest.id);
             // If this job belongs to an existing project, make sure to remove it
             const existingProject = projectIndex[job.parentRequest.id];
             if (existingProject) {
-              const beforeCount = existingProject.jobs.length;
               existingProject.jobs = existingProject.jobs.filter(j => j.id !== job.imgID);
-              console.log('[useProjectHistory] Removed hidden job from existing project:', {
-                projectId: existingProject.id,
-                beforeCount,
-                afterCount: existingProject.jobs.length
-              });
               // If all jobs are now removed, mark project as hidden
-              if (existingProject.jobs.length === 0 && beforeCount > 0) {
+              if (existingProject.jobs.length === 0) {
                 existingProject.hidden = true;
-                console.log('[useProjectHistory] Marked project as hidden (all jobs removed):', existingProject.id);
               }
             }
             continue;
@@ -258,7 +264,6 @@ export function useProjectHistory({ sogniClient }: UseProjectHistoryOptions) {
             
             // Don't create project if all jobs are hidden
             if (visibleProjectJobs.length === 0) {
-              console.log('[useProjectHistory] Skipping project creation - all jobs are hidden:', job.parentRequest.id);
               continue;
             }
             // New project - set createdAt from the first job's createTime
@@ -270,12 +275,6 @@ export function useProjectHistory({ sogniClient }: UseProjectHistoryOptions) {
               projectCreatedAt = projectCreatedAt * 1000;
             }
             newProject.createdAt = projectCreatedAt;
-            console.log('[useProjectHistory] New project created:', {
-              projectId: newProject.id,
-              createdAt: newProject.createdAt,
-              createTime: job.createTime,
-              date: new Date(newProject.createdAt).toISOString()
-            });
             projectIndex[job.parentRequest.id] = newProject;
           }
 
@@ -381,19 +380,10 @@ export function useProjectHistory({ sogniClient }: UseProjectHistoryOptions) {
           const isRecent = p.createdAt > minTimestamp;
           const isNotHidden = !p.hidden;
           const hasVisibleJobs = p.jobs.length > 0;
-          
-          if (!isRecent) {
-            console.log('[useProjectHistory] Filtering out old project:', p.id, 'createdAt:', new Date(p.createdAt).toISOString());
-          }
-          if (!isNotHidden) {
-            console.log('[useProjectHistory] Filtering out hidden project:', p.id);
-          }
-          if (!hasVisibleJobs) {
-            console.log('[useProjectHistory] Filtering out project with no jobs:', p.id);
-          }
-          
           return isRecent && isNotHidden && hasVisibleJobs;
         });
+
+        const newHasMore = jobs.length > 0 && next > 0 && next > prev.offset && !hasOldJobs;
 
         return {
           projects: filteredProjects,
@@ -401,7 +391,7 @@ export function useProjectHistory({ sogniClient }: UseProjectHistoryOptions) {
           initialized: true,
           offset: next,
           // No more data if: empty response, next is 0, offset didn't advance, or hit old jobs
-          hasMore: jobs.length > 0 && next > 0 && next > prev.offset && !hasOldJobs,
+          hasMore: newHasMore,
           error: null
         };
       });
@@ -424,32 +414,37 @@ export function useProjectHistory({ sogniClient }: UseProjectHistoryOptions) {
     }
   }, [sogniClient]);
 
-  // Initial fetch
+  // Initial fetch - keep existing projects to avoid flicker, replace when new data arrives
   const refresh = useCallback(() => {
-    setState({
-      projects: [],
-      loading: false,
+    setState(prev => ({
+      ...prev,
+      loading: true,
       hasMore: true,
       offset: 0,
-      initialized: false,
       error: null
-    });
+    }));
     fetchPage(0);
   }, [fetchPage]);
 
   // Load more (next page)
   const loadMore = useCallback(() => {
-    if (!state.loading && state.hasMore) {
-      fetchPage(state.offset);
+    const currentState = stateRef.current;
+    // Don't load more until initial fetch is complete (offset > 0 means we've fetched at least once)
+    if (currentState.offset === 0) {
+      return;
     }
-  }, [fetchPage, state.loading, state.hasMore, state.offset]);
+    if (!currentState.loading && currentState.hasMore) {
+      fetchPage(currentState.offset);
+    }
+  }, [fetchPage]);
 
   // Prefetch next page silently (no loading indicator)
   const prefetchNext = useCallback(() => {
-    if (!state.loading && state.hasMore && !prefetchingRef.current) {
-      fetchPage(state.offset, true);
+    const currentState = stateRef.current;
+    if (!currentState.loading && currentState.hasMore && !prefetchingRef.current) {
+      fetchPage(currentState.offset, true);
     }
-  }, [fetchPage, state.loading, state.hasMore, state.offset]);
+  }, [fetchPage]);
 
   // Hide a job from the list (delete it)
   const hideJob = useCallback(async (projectId: string, jobId: string): Promise<boolean> => {

@@ -72,7 +72,8 @@ function Step3({ step1, step2, onReturn, onContinue }: Props) {
             type="button"
             onClick={onReturn}
             disabled={isLoading}
-            className="text-blue-600 hover:text-blue-800 disabled:opacity-50"
+            className="font-medium transition-colors hover:underline disabled:opacity-50"
+            style={{ color: 'var(--color-text-secondary)' }}
           >
             ← Back
           </button>

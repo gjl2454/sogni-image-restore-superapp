@@ -27,6 +27,8 @@ export function useFavorites() {
     const success = await addFavorite(image);
     if (success) {
       refresh();
+      // Dispatch custom event to notify other useFavorites instances in the same tab
+      window.dispatchEvent(new CustomEvent('favorites-changed'));
     }
     return success;
   }, [refresh]);
@@ -36,6 +38,8 @@ export function useFavorites() {
     const success = await removeFavorite(jobId);
     if (success) {
       refresh();
+      // Dispatch custom event to notify other useFavorites instances in the same tab
+      window.dispatchEvent(new CustomEvent('favorites-changed'));
     }
     return success;
   }, [refresh]);
@@ -44,6 +48,8 @@ export function useFavorites() {
   const toggle = useCallback(async (image: FavoriteImage): Promise<boolean> => {
     const success = await toggleFavoriteService(image);
     refresh();
+    // Dispatch custom event to notify other useFavorites instances in the same tab
+    window.dispatchEvent(new CustomEvent('favorites-changed'));
     return success;
   }, [refresh]);
 
@@ -51,6 +57,8 @@ export function useFavorites() {
   const clear = useCallback(() => {
     clearFavorites();
     refresh();
+    // Dispatch custom event to notify other useFavorites instances in the same tab
+    window.dispatchEvent(new CustomEvent('favorites-changed'));
   }, [refresh]);
 
   // Listen for storage changes (from other tabs/windows)
@@ -63,6 +71,16 @@ export function useFavorites() {
 
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
+  }, [refresh]);
+
+  // Listen for favorites changes from same tab (custom event)
+  useEffect(() => {
+    const handleFavoritesChanged = () => {
+      refresh();
+    };
+
+    window.addEventListener('favorites-changed', handleFavoritesChanged);
+    return () => window.removeEventListener('favorites-changed', handleFavoritesChanged);
   }, [refresh]);
 
   return {

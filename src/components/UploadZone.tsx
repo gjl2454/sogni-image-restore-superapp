@@ -125,15 +125,16 @@ export const UploadZone: React.FC<UploadZoneProps> = ({ onFileSelect, disabled, 
       <div className="mt-6 pt-4" style={{
         borderTop: '1px solid var(--color-border-light)'
       }}>
-        <p style={{
-          fontSize: '0.75rem',
-          color: 'var(--color-text-secondary)',
-          marginBottom: '0.75rem',
-          fontWeight: 500
-        }}>
-          Number of restored images:
-        </p>
-        <div className="flex gap-2 justify-center" data-onboarding="number-of-images" style={{ position: 'relative' }}>
+        <div data-onboarding="number-of-images" style={{ width: 'fit-content', margin: '0 auto', textAlign: 'center' }}>
+          <p style={{
+            fontSize: '0.75rem',
+            color: 'var(--color-text-secondary)',
+            marginBottom: '0.75rem',
+            fontWeight: 500
+          }}>
+            Number of restored images:
+          </p>
+          <div className="flex gap-2" style={{ justifyContent: 'center' }}>
           {[2, 4, 6].map((count) => (
             <button
               key={count}
@@ -158,6 +159,7 @@ export const UploadZone: React.FC<UploadZoneProps> = ({ onFileSelect, disabled, 
               {count}
             </button>
           ))}
+          </div>
         </div>
       </div>
     </div>

@@ -30,6 +30,9 @@ interface ImagePreviewProps {
   completedCount?: number;
   totalCount?: number;
   onDownload?: (url: string) => void;
+  // For favorites functionality
+  projectId?: string;
+  modelName?: string;
 }
 
 export const ImagePreview: React.FC<ImagePreviewProps> = ({
@@ -47,7 +50,9 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
   etaSeconds,
   completedCount = 0,
   totalCount = 0,
-  onDownload
+  onDownload,
+  projectId,
+  modelName
 }) => {
   const hasResults = restoredUrls.length > 0;
   const hasPlaceholders = restorationJobs.length > 0;
@@ -282,6 +287,9 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
         totalResults={hasMultipleResults ? completedJobs.length : undefined}
         onPrevious={hasMultipleResults ? handlePrevious : undefined}
         onNext={hasMultipleResults ? handleNext : undefined}
+        jobId={selectedJobIndex !== null ? restorationJobs.find(j => j.index === selectedJobIndex)?.id : undefined}
+        projectId={projectId}
+        modelName={modelName}
       />
     )}
   </>

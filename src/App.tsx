@@ -12,6 +12,8 @@ import { ImagePreview } from './components/ImagePreview';
 import { ProgressIndicator } from './components/ProgressIndicator';
 import { OutOfCreditsPopup } from './components/OutOfCreditsPopup';
 import { BeforeAfterGallery } from './components/BeforeAfterGallery';
+import { HowItWorks } from './components/HowItWorks';
+import { SignInCTA } from './components/SignInCTA';
 import { FeaturesSection } from './components/FeaturesSection';
 import { ToastProvider } from './context/ToastContext';
 import NetworkStatus from './components/shared/NetworkStatus';
@@ -425,45 +427,47 @@ function AppContent() {
                 <span>Gallery</span>
               </button>
             )}
-            <button
-              onClick={() => {
-                if (resetOnboarding) {
-                  resetOnboarding();
-                  // Force re-render of HelpOnboarding component
-                  setOnboardingKey(prev => prev + 1);
-                } else {
-                  // If reset function not ready, manually clear localStorage and reload
-                  try {
-                    localStorage.removeItem('sogni_restoration_onboarding_completed');
-                    localStorage.removeItem('sogni_restoration_onboarding_skipped');
-                    window.location.reload();
-                  } catch (error) {
-                    console.error('Failed to reset onboarding:', error);
+            {isAuthenticated && (
+              <button
+                onClick={() => {
+                  if (resetOnboarding) {
+                    resetOnboarding();
+                    // Force re-render of HelpOnboarding component
+                    setOnboardingKey(prev => prev + 1);
+                  } else {
+                    // If reset function not ready, manually clear localStorage and reload
+                    try {
+                      localStorage.removeItem('sogni_restoration_onboarding_completed');
+                      localStorage.removeItem('sogni_restoration_onboarding_skipped');
+                      window.location.reload();
+                    } catch (error) {
+                      console.error('Failed to reset onboarding:', error);
+                    }
                   }
-                }
-              }}
-              title="Show Tutorial"
-              style={{
-                background: 'transparent',
-                border: '1px solid var(--color-border)',
-                borderRadius: '6px',
-                padding: '4px 8px',
-                cursor: 'pointer',
-                fontSize: '0.75rem',
-                color: 'var(--color-text-secondary)',
-                transition: 'all 0.2s ease'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'var(--color-bg-elevated)';
-                e.currentTarget.style.color = 'var(--color-text)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'transparent';
-                e.currentTarget.style.color = 'var(--color-text-secondary)';
-              }}
-            >
-              Help
-            </button>
+                }}
+                title="Show Tutorial"
+                style={{
+                  background: 'transparent',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: '6px',
+                  padding: '4px 8px',
+                  cursor: 'pointer',
+                  fontSize: '0.75rem',
+                  color: 'var(--color-text-secondary)',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'var(--color-bg-elevated)';
+                  e.currentTarget.style.color = 'var(--color-text)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent';
+                  e.currentTarget.style.color = 'var(--color-text-secondary)';
+                }}
+              >
+                Help
+              </button>
+            )}
             {isAuthenticated && estimatedRestorationCost > 0 && numberOfImages > 0 && balances && tokenType && (
               <div
                 style={{
@@ -578,18 +582,14 @@ function AppContent() {
                 }}>
                   Restore Your <span className="gradient-accent whitespace-nowrap">Precious Memories</span>
                 </h1>
-                <p className="mb-6 main-description" style={{ 
+                <p className="mb-6 main-description" style={{
                   color: 'var(--color-text-secondary)',
                   lineHeight: 1.5,
-                  fontWeight: 400
+                  fontWeight: 400,
+                  whiteSpace: 'nowrap'
                 }}>
-                  Transform damaged and faded photos into vibrant memories with AI-powered&nbsp;restoration.
+                  ✨ Transform damaged and faded photos into vibrant memories with AI-powered restoration. ✨
                 </p>
-              </div>
-
-              {/* Features Section */}
-              <div className="w-full flex-shrink-0">
-                <FeaturesSection />
               </div>
 
               {/* Before/After Gallery */}
@@ -597,22 +597,153 @@ function AppContent() {
                 <BeforeAfterGallery />
               </div>
 
-              {/* Call to Action */}
-              <div className="text-center w-full max-w-2xl fade-in flex flex-col items-center py-8 lg:py-12 flex-shrink-0">
-                <p className="text-lg font-semibold mb-2 px-4" style={{ 
-                  color: 'var(--color-text-primary)',
-                  lineHeight: 1.5
-                }}>
-                  Ready to restore your photos?
-                </p>
-                <p className="text-base px-4" style={{ 
-                  color: 'var(--color-text-secondary)',
-                  lineHeight: 1.5,
-                  fontWeight: 400
-                }}>
-                  Sign in to start restoring your precious memories with AI-powered&nbsp;restoration.
-                </p>
+              {/* Sign In CTA Section */}
+              <div className="w-full flex-shrink-0">
+                <SignInCTA />
               </div>
+
+              {/* How It Works */}
+              <div className="w-full flex-shrink-0">
+                <HowItWorks />
+              </div>
+
+              {/* Why Choose Sogni */}
+              <div className="w-full flex-shrink-0">
+                <FeaturesSection />
+              </div>
+
+              {/* Footer - inside scrollable area for landing page */}
+              <footer className="w-full flex-shrink-0 app-footer" style={{
+                background: 'var(--color-bg-elevated)',
+                borderTop: '1px solid var(--color-border)',
+                padding: '1rem 0',
+                marginTop: '1rem'
+              }}>
+                <div className="max-w-7xl mx-auto px-4 lg:px-6">
+                  <div className="flex flex-col md:flex-row items-center justify-between gap-2 footer-content">
+                    <div className="flex items-center gap-3 text-center md:text-left footer-title">
+                      <div
+                        style={{
+                          width: '28px',
+                          height: '28px',
+                          overflow: 'hidden',
+                          flexShrink: 0
+                        }}
+                      >
+                        <img
+                          src="/sogni-logo.png"
+                          alt="Sogni"
+                          style={{
+                            height: '28px',
+                            width: 'auto',
+                            objectFit: 'cover',
+                            objectPosition: 'left center'
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <h2 className="footer-heading">
+                          Discover More Sogni&nbsp;Apps
+                        </h2>
+                        <p className="footer-subtitle">
+                          Powered by the Sogni&nbsp;Supernet
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-center gap-1.5 footer-apps">
+                      <a
+                        href="https://www.sogni.ai/studio"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="footer-app-link inline-flex items-center gap-1 px-2 py-1 rounded hover:opacity-80 transition-opacity"
+                        style={{
+                          background: 'var(--color-bg)',
+                          border: '1px solid var(--color-border)',
+                          textDecoration: 'none',
+                          fontSize: '0.75rem',
+                          fontWeight: 500,
+                          color: 'var(--color-text-primary)'
+                        }}
+                      >
+                        <span style={{ fontSize: '0.875rem' }}>💻</span>
+                        <span className="footer-app-name">Studio&nbsp;Pro</span>
+                      </a>
+
+                      <a
+                        href="https://www.sogni.ai/pocket"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="footer-app-link inline-flex items-center gap-1 px-2 py-1 rounded hover:opacity-80 transition-opacity"
+                        style={{
+                          background: 'var(--color-bg)',
+                          border: '1px solid var(--color-border)',
+                          textDecoration: 'none',
+                          fontSize: '0.75rem',
+                          fontWeight: 500,
+                          color: 'var(--color-text-primary)'
+                        }}
+                      >
+                        <span style={{ fontSize: '0.875rem' }}>📱</span>
+                        <span className="footer-app-name">Pocket</span>
+                      </a>
+
+                      <a
+                        href="https://web.sogni.ai"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="footer-app-link inline-flex items-center gap-1 px-2 py-1 rounded hover:opacity-80 transition-opacity"
+                        style={{
+                          background: 'var(--color-bg)',
+                          border: '1px solid var(--color-border)',
+                          textDecoration: 'none',
+                          fontSize: '0.75rem',
+                          fontWeight: 500,
+                          color: 'var(--color-text-primary)'
+                        }}
+                      >
+                        <span style={{ fontSize: '0.875rem' }}>🌐</span>
+                        <span className="footer-app-name">Web</span>
+                      </a>
+
+                      <a
+                        href="https://photobooth.sogni.ai"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="footer-app-link inline-flex items-center gap-1 px-2 py-1 rounded hover:opacity-80 transition-opacity"
+                        style={{
+                          background: 'var(--color-bg)',
+                          border: '1px solid var(--color-border)',
+                          textDecoration: 'none',
+                          fontSize: '0.75rem',
+                          fontWeight: 500,
+                          color: 'var(--color-text-primary)'
+                        }}
+                      >
+                        <span style={{ fontSize: '0.875rem' }}>📸</span>
+                        <span className="footer-app-name">Photobooth</span>
+                      </a>
+
+                      <a
+                        href="https://www.sogni.ai/super-apps"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="footer-app-link inline-flex items-center gap-0.5 px-2 py-1 rounded hover:opacity-80 transition-opacity"
+                        style={{
+                          background: 'var(--sogni-purple)',
+                          color: 'white',
+                          textDecoration: 'none',
+                          fontSize: '0.75rem',
+                          fontWeight: 600
+                        }}
+                      >
+                        <span className="whitespace-nowrap">View&nbsp;All</span>
+                        <span>→</span>
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </footer>
             </div>
           ) : (
             <div className="w-full max-w-7xl flex-1 min-h-0 flex flex-col gap-0 overflow-hidden">
@@ -809,6 +940,7 @@ function AppContent() {
                             completedCount={completedCount}
                             totalCount={totalCount}
                             onDownload={handleDownload}
+                            modelName="Restoration"
                           />
                         </div>
                       </div>
@@ -822,8 +954,8 @@ function AppContent() {
       </main>
 
 
-      {/* Footer - Compact Design */}
-      {!imageUrl && (
+      {/* Footer - Compact Design (only for authenticated upload screen) */}
+      {isAuthenticated && !imageUrl && (
         <footer className="flex-shrink-0 app-footer" style={{
           background: 'var(--color-bg-elevated)',
           borderTop: '1px solid var(--color-border)',
@@ -831,15 +963,36 @@ function AppContent() {
         }}>
           <div className="max-w-7xl mx-auto px-4 lg:px-6">
             <div className="flex flex-col md:flex-row items-center justify-between gap-2 footer-content">
-              <div className="text-center md:text-left footer-title">
-                <h2 className="footer-heading">
-                  Discover More Sogni&nbsp;Apps
-                </h2>
-                <p className="footer-subtitle">
-                  Powered by the Sogni&nbsp;Supernet
-                </p>
+              <div className="flex items-center gap-3 text-center md:text-left footer-title">
+                <div
+                  style={{
+                    width: '28px',
+                    height: '28px',
+                    overflow: 'hidden',
+                    flexShrink: 0
+                  }}
+                >
+                  <img
+                    src="/sogni-logo.png"
+                    alt="Sogni"
+                    style={{
+                      height: '28px',
+                      width: 'auto',
+                      objectFit: 'cover',
+                      objectPosition: 'left center'
+                    }}
+                  />
+                </div>
+                <div>
+                  <h2 className="footer-heading">
+                    Discover More Sogni&nbsp;Apps
+                  </h2>
+                  <p className="footer-subtitle">
+                    Powered by the Sogni&nbsp;Supernet
+                  </p>
+                </div>
               </div>
-              
+
               <div className="flex flex-wrap items-center justify-center gap-1.5 footer-apps">
                 <a
                   href="https://www.sogni.ai/studio"
@@ -858,7 +1011,7 @@ function AppContent() {
                   <span style={{ fontSize: '0.875rem' }}>💻</span>
                   <span className="footer-app-name">Studio&nbsp;Pro</span>
                 </a>
-                
+
                 <a
                   href="https://www.sogni.ai/pocket"
                   target="_blank"
@@ -876,7 +1029,7 @@ function AppContent() {
                   <span style={{ fontSize: '0.875rem' }}>📱</span>
                   <span className="footer-app-name">Pocket</span>
                 </a>
-                
+
                 <a
                   href="https://web.sogni.ai"
                   target="_blank"
@@ -894,7 +1047,7 @@ function AppContent() {
                   <span style={{ fontSize: '0.875rem' }}>🌐</span>
                   <span className="footer-app-name">Web</span>
                 </a>
-                
+
                 <a
                   href="https://photobooth.sogni.ai"
                   target="_blank"
@@ -912,7 +1065,7 @@ function AppContent() {
                   <span style={{ fontSize: '0.875rem' }}>📸</span>
                   <span className="footer-app-name">Photobooth</span>
                 </a>
-                
+
                 <a
                   href="https://www.sogni.ai/super-apps"
                   target="_blank"

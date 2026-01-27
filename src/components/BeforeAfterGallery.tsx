@@ -9,23 +9,47 @@ interface BeforeAfterGalleryProps {
   items?: GalleryItem[];
 }
 
-// Default placeholder images - user will replace these later
+// Gallery images showcasing restoration results
 const defaultItems: GalleryItem[] = [
   {
-    before: 'https://images.unsplash.com/photo-1516280440614-37939bbacd81?w=400&h=500&fit=crop',
-    after: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=500&fit=crop'
+    before: '/gallery/gallery-prom.png',
+    after: '/gallery/gallery-prom-after.png'
   },
   {
-    before: 'https://images.unsplash.com/photo-1501594907352-04cda38ebc29?w=400&h=500&fit=crop',
-    after: 'https://images.unsplash.com/photo-1502823403499-6ccfcf4fb453?w=400&h=500&fit=crop'
+    before: '/gallery/gallery-family-pic.png',
+    after: '/gallery/gallery-family-pic-after.png'
   },
   {
-    before: 'https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?w=400&h=500&fit=crop',
-    after: 'https://images.unsplash.com/photo-1492106087820-71f1a00d2b11?w=400&h=500&fit=crop'
+    before: '/gallery/gallery-girl-portrait.png',
+    after: '/gallery/gallery-girl-portrait-after.png'
   },
   {
-    before: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=500&fit=crop',
-    after: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&h=500&fit=crop'
+    before: '/gallery/gallery-baby-portrait.png',
+    after: '/gallery/gallery-baby-portrait-after.png'
+  },
+  {
+    before: '/gallery/gallery-beach.png',
+    after: '/gallery/gallery-beach-after.png'
+  },
+  {
+    before: '/gallery/gallery-chinatown.png',
+    after: '/gallery/gallery-chinatown-after.png'
+  },
+  {
+    before: '/gallery/gallery-festival-girls.png',
+    after: '/gallery/gallery-festival-girls-after.png'
+  },
+  {
+    before: '/gallery/gallery-wedding.png',
+    after: '/gallery/gallery-wedding-after.png'
+  },
+  {
+    before: '/gallery/gallery-baby-mom.png',
+    after: '/gallery/gallery-baby-mom-after.png'
+  },
+  {
+    before: '/gallery/gallery-bandboy.png',
+    after: '/gallery/gallery-bandboy-after.png'
   }
 ];
 
@@ -35,26 +59,7 @@ export const BeforeAfterGallery: React.FC<BeforeAfterGalleryProps> = ({
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
   return (
-    <div className="w-full py-8 lg:py-12">
-      <div className="text-center mb-10 lg:mb-12">
-        <h3 className="text-xl lg:text-2xl font-bold mb-3" style={{
-          background: 'var(--sogni-gradient)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          backgroundClip: 'text',
-          letterSpacing: '-0.02em'
-        }}>
-          ✨ See Our Restoration Magic
-        </h3>
-        <p className="text-sm lg:text-base" style={{
-          color: 'var(--color-text-secondary)',
-          maxWidth: '600px',
-          margin: '0 auto'
-        }}>
-          Browse our gallery of restored memories. Each image tells a story of transformation.
-        </p>
-      </div>
-
+    <div className="w-full py-4 lg:py-8">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6 max-w-6xl mx-auto px-4">
         {items.map((item, index) => (
           <div
@@ -64,7 +69,7 @@ export const BeforeAfterGallery: React.FC<BeforeAfterGalleryProps> = ({
               animationDelay: `${index * 100}ms`,
               animationFillMode: 'both',
               opacity: 0,
-              aspectRatio: '4/3',
+              aspectRatio: '2/1',
               borderRadius: 'var(--radius-lg)',
               overflow: 'hidden',
               cursor: 'pointer'
@@ -87,7 +92,7 @@ export const BeforeAfterGallery: React.FC<BeforeAfterGalleryProps> = ({
                 <img
                   src={item.before}
                   alt="Before restoration"
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-contain"
                   style={{
                     filter: hoveredIndex === index ? 'brightness(0.7)' : 'brightness(0.9)',
                     transition: 'filter 0.5s ease'
@@ -138,7 +143,7 @@ export const BeforeAfterGallery: React.FC<BeforeAfterGalleryProps> = ({
                 <img
                   src={item.after}
                   alt="After restoration"
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-contain"
                   style={{
                     filter: hoveredIndex === index ? 'brightness(1)' : 'brightness(0.95)',
                     transition: 'filter 0.5s ease'

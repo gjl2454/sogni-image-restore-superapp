@@ -1,5 +1,8 @@
 /**
  * Onboarding Step Definitions
+ *
+ * Steps 1 & 2: Highlight specific UI elements
+ * Steps 3 & 4: Informational (centered tooltip, no highlight)
  */
 
 export interface OnboardingStep {
@@ -14,29 +17,29 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
   {
     id: 'number-of-images',
     title: 'Choose Number of Results',
-    description: 'Select how many restored variations you want to generate. More images give you more options to choose from.',
+    description: 'Select how many restored variations to generate. More images give you more options to find the perfect restoration.',
     targetSelector: '[data-onboarding="number-of-images"]',
     position: 'bottom'
   },
   {
     id: 'upload',
     title: 'Upload Your Photo',
-    description: 'Click here to upload a photo you want to restore. You can drag and drop an image or click to browse. Restoration will start automatically!',
+    description: 'Drag and drop an image here, or click to browse your files. Restoration begins automatically after upload.',
     targetSelector: '[data-onboarding="upload-zone"]',
     position: 'right'
   },
   {
     id: 'restore',
-    title: 'Restoration in Progress',
-    description: 'Your photo is being restored automatically! The AI will enhance your image and generate the variations you selected. This usually takes just a few moments.',
-    targetSelector: '[data-onboarding="restore-button"]',
-    position: 'top'
+    title: 'Watch the Magic Happen',
+    description: 'Once uploaded, our AI will automatically enhance your photo. You\'ll see a progress indicator while it works its magic.',
+    // No targetSelector - this is an informational step
+    position: 'center'
   },
   {
     id: 'results',
-    title: 'View & Download Results',
-    description: 'Once restoration is complete, you can view all results, compare before/after, and download your favorites.',
-    targetSelector: '[data-onboarding="results"]',
-    position: 'top'
+    title: 'Pick Your Favorite!',
+    description: 'Review all restored variations side by side. Use the comparison slider to see before/after, then download your favorites.',
+    // No targetSelector - this is an informational step
+    position: 'center'
   }
 ];

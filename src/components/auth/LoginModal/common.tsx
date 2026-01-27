@@ -20,7 +20,7 @@ export function FormPanel({ children, onSubmit, disabled, autoComplete, noValida
   return (
     <form
       onSubmit={onSubmit}
-      className="p-6"
+      className="p-2"
       autoComplete={autoComplete}
       noValidate={noValidate}
     >
@@ -40,11 +40,75 @@ export function FormContent({ children, noHeading, subHeading }: FormContentProp
   const { text } = useModalCtx();
   return (
     <div>
-      <div className="text-center mb-6">
-        {!noHeading && <h1 className="text-2xl font-bold text-gray-900 mb-2">{text.heading}</h1>}
-        {subHeading && <h2 className="text-lg text-gray-600">{subHeading}</h2>}
+      {/* Header with gradient background */}
+      <div
+        className="text-center mb-6 -mx-2 -mt-2 px-6 py-6 rounded-t-lg"
+        style={{
+          background: 'linear-gradient(135deg, rgba(52, 73, 102, 0.03) 0%, rgba(180, 205, 237, 0.12) 100%)',
+          borderBottom: '1px solid rgba(52, 73, 102, 0.08)'
+        }}
+      >
+        {/* Icon */}
+        {!noHeading && (
+          <div
+            className="w-14 h-14 mx-auto mb-4 flex items-center justify-center rounded-full"
+            style={{
+              background: 'linear-gradient(135deg, var(--sogni-pink), var(--sogni-purple))',
+              boxShadow: '0 4px 14px rgba(180, 205, 237, 0.4)'
+            }}
+          >
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M15 4V2" />
+              <path d="M15 16v-2" />
+              <path d="M8 9h2" />
+              <path d="M20 9h2" />
+              <path d="M17.8 11.8L19 13" />
+              <path d="M15 9h0" />
+              <path d="M17.8 6.2L19 5" />
+              <path d="M3 21l9-9" />
+              <path d="M12.2 6.2L11 5" />
+            </svg>
+          </div>
+        )}
+        {!noHeading && (
+          <h1
+            className="text-xl font-bold mb-1"
+            style={{
+              color: 'var(--color-text-primary)',
+              letterSpacing: '-0.02em'
+            }}
+          >
+            {text.heading}
+          </h1>
+        )}
+        {subHeading && (
+          <h2
+            className="text-sm font-medium"
+            style={{ color: 'var(--color-text-secondary)' }}
+          >
+            {subHeading}
+          </h2>
+        )}
+        {/* Free credits badge */}
+        {!noHeading && (
+          <div
+            className="inline-flex items-center gap-1.5 mt-3 px-3 py-1.5 rounded-full text-xs font-semibold"
+            style={{
+              background: 'linear-gradient(135deg, var(--sogni-pink), var(--sogni-purple))',
+              color: 'white',
+              boxShadow: '0 2px 8px rgba(180, 205, 237, 0.3)'
+            }}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+            </svg>
+            <span>50 Free Credits Daily</span>
+          </div>
+        )}
       </div>
-      {children}
+      <div className="px-2">
+        {children}
+      </div>
     </div>
   );
 }
@@ -54,11 +118,22 @@ export function FieldContainer({ children }: Props) {
 }
 
 export function FormFooter({ children }: Props) {
-  return <div className="mt-6 text-center">{children}</div>;
+  return <div className="mt-6 text-center px-2 pb-2">{children}</div>;
 }
 
 export function ErrorMessage({ children }: Props) {
-  return <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">{children}</div>;
+  return (
+    <div
+      className="px-4 py-3 rounded-lg mb-4 text-sm"
+      style={{
+        background: 'rgba(239, 68, 68, 0.08)',
+        border: '1px solid rgba(239, 68, 68, 0.2)',
+        color: '#dc2626'
+      }}
+    >
+      {children}
+    </div>
+  );
 }
 
 interface LinkButtonProps extends Props {
@@ -67,7 +142,12 @@ interface LinkButtonProps extends Props {
 
 export function LinkButton({ children, onClick }: LinkButtonProps) {
   return (
-    <button className="text-blue-600 hover:text-blue-800 underline" onClick={onClick} type="button">
+    <button
+      className="font-medium hover:underline transition-colors"
+      style={{ color: 'var(--sogni-purple)' }}
+      onClick={onClick}
+      type="button"
+    >
       {children}
     </button>
   );

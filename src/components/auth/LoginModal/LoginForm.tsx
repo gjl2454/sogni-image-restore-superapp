@@ -186,12 +186,16 @@ function LoginForm({ onSignup, onClose }: Props) {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+            className="w-full text-white py-3 px-4 rounded-xl font-semibold transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+            style={{
+              background: 'linear-gradient(135deg, var(--sogni-pink), var(--sogni-purple))',
+              boxShadow: '0 4px 14px rgba(180, 205, 237, 0.4)'
+            }}
           >
             {isLoading ? 'Signing in...' : 'Sign In'}
           </button>
-          <div className="mt-4">
-            <span className="text-gray-600">Don't have an account? </span>
+          <div className="mt-4" style={{ color: 'var(--color-text-secondary)' }}>
+            <span>Don't have an account? </span>
             <LinkButton onClick={onSignup}>Sign up</LinkButton>
           </div>
         </FormFooter>

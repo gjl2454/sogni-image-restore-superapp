@@ -4,6 +4,7 @@ import type { ArchiveProject, ArchiveJob } from '../../types/projectHistory';
 import { useMediaUrl } from '../../hooks/useMediaUrl';
 import { useFavorites } from '../../hooks/useFavorites';
 import { getCachedFavorite } from '../../utils/favoritesDB';
+import type { FavoriteImage } from '../../services/favoritesService';
 import './MediaSlideshow.css';
 
 interface MediaSlideshowProps {
@@ -23,8 +24,18 @@ const MediaSlideshow: React.FC<MediaSlideshowProps> = ({
   onDeleteJob,
   favoritesOnly = false
 }) => {
-  const { favorites } = useFavorites();
-  
+  const { favorites, isFavorite, toggle } = useFavorites();
+  const [isClosing, setIsClosing] = useState(false);
+
+  // Handle close with fade-out animation
+  const handleClose = useCallback(() => {
+    setIsClosing(true);
+    // Wait for animation to complete before actually closing
+    setTimeout(() => {
+      onClose();
+    }, 200);
+  }, [onClose]);
+
   // Create a Set of favorite job IDs for efficient lookup and reactivity
   const favoriteJobIds = useMemo(() => {
     return new Set(favorites.map(f => f.jobId));
@@ -215,7 +226,7 @@ const MediaSlideshow: React.FC<MediaSlideshowProps> = ({
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        onClose();
+        handleClose();
       } else if (e.key === 'ArrowLeft') {
         e.preventDefault();
         handlePrevious();
@@ -329,11 +340,11 @@ const MediaSlideshow: React.FC<MediaSlideshowProps> = ({
 
   if (completedJobs.length === 0) {
     return (
-      <div className="media-slideshow-overlay">
+      <div className={`media-slideshow-overlay ${isClosing ? 'closing' : ''}`}>
         <div className="media-slideshow-content">
           <div className="media-slideshow-error">
             <p>No media available to view</p>
-            <button onClick={onClose}>Close</button>
+            <button onClick={handleClose}>Close</button>
           </div>
         </div>
       </div>
@@ -348,11 +359,11 @@ const MediaSlideshow: React.FC<MediaSlideshowProps> = ({
       completedJobIds: completedJobs.map(j => j.id)
     });
     return (
-      <div className="media-slideshow-overlay">
+      <div className={`media-slideshow-overlay ${isClosing ? 'closing' : ''}`}>
         <div className="media-slideshow-content">
           <div className="media-slideshow-error">
             <p>Error: Unable to load image</p>
-            <button onClick={onClose}>Close</button>
+            <button onClick={handleClose}>Close</button>
           </div>
         </div>
       </div>
@@ -370,8 +381,39 @@ const MediaSlideshow: React.FC<MediaSlideshowProps> = ({
 
   const displayModelName = currentFavorite?.modelName || project.model.name;
 
+  // Normalize URL for comparison (remove query parameters, etc.)
+  const normalizeUrl = (url: string): string => {
+    try {
+      const urlObj = new URL(url);
+      return `${urlObj.protocol}//${urlObj.host}${urlObj.pathname}`;
+    } catch {
+      return url;
+    }
+  };
+
+  // Check if current job is favorited by jobId OR by URL (matches JobItem behavior)
+  const isCurrentJobFavorited = useMemo(() => {
+    if (!currentJob) return false;
+
+    // First check by jobId
+    if (isFavorite(currentJob.id)) {
+      return true;
+    }
+
+    // Also check by URL in case the favorite was created with a different jobId
+    if (currentImageUrl) {
+      const normalizedUrl = normalizeUrl(currentImageUrl);
+      return favorites.some(fav => {
+        const normalizedFavUrl = normalizeUrl(fav.url);
+        return normalizedFavUrl === normalizedUrl || fav.url === currentImageUrl;
+      });
+    }
+
+    return false;
+  }, [currentJob, currentImageUrl, isFavorite, favorites]);
+
   return (
-    <div className="media-slideshow-overlay">
+    <div className={`media-slideshow-overlay ${isClosing ? 'closing' : ''}`}>
       <div className="media-slideshow-content">
         {/* Header with close and delete buttons */}
         <div className="media-slideshow-top-bar">
@@ -483,9 +525,9 @@ const MediaSlideshow: React.FC<MediaSlideshowProps> = ({
               )}
             </div>
           </div>
-          <button 
-            className="media-slideshow-close" 
-            onClick={onClose}
+          <button
+            className="media-slideshow-close"
+            onClick={handleClose}
             aria-label="Close slideshow"
           >
             ×
@@ -525,6 +567,27 @@ const MediaSlideshow: React.FC<MediaSlideshowProps> = ({
           active={true}
           modelName={displayModelName}
           onUrlLoaded={setCurrentImageUrl}
+          isFavorited={isCurrentJobFavorited}
+          onToggleFavorite={async () => {
+            if (!currentJob || !currentImageUrl) return;
+
+            // Check if there's an existing favorite by URL (might have different jobId)
+            const normalizedUrl = normalizeUrl(currentImageUrl);
+            const existingFavorite = favorites.find(fav => {
+              if (fav.jobId === currentJob.id) return true;
+              const normalizedFavUrl = normalizeUrl(fav.url);
+              return normalizedFavUrl === normalizedUrl || fav.url === currentImageUrl;
+            });
+
+            const favoriteImage: FavoriteImage = existingFavorite || {
+              jobId: currentJob.id,
+              projectId: project.id,
+              url: currentImageUrl,
+              createdAt: Date.now(),
+              modelName: displayModelName
+            };
+            await toggle(favoriteImage);
+          }}
         />
       </div>
     </div>
@@ -537,11 +600,13 @@ interface SlideshowContentProps {
   active: boolean;
   modelName: string;
   onUrlLoaded?: (url: string | null) => void;
+  isFavorited?: boolean;
+  onToggleFavorite?: () => void;
 }
 
-function SlideshowContent({ job, sogniClient, active, modelName, onUrlLoaded }: SlideshowContentProps) {
+function SlideshowContent({ job, sogniClient, active, modelName, onUrlLoaded, isFavorited, onToggleFavorite }: SlideshowContentProps) {
   const { favorites } = useFavorites();
-  
+
   // For placeholder jobs (from favorites not in visibleProjects), use the favorite's stored URL
   // Match by jobId first, but also handle cases where jobId might be a placeholder
   const favoriteData = useMemo(() => {
@@ -559,12 +624,12 @@ function SlideshowContent({ job, sogniClient, active, modelName, onUrlLoaded }: 
     }
     return found;
   }, [favorites, job.id, job.projectId]);
-  
+
   // If we have favorite data and the job is a placeholder (projectId is 'current-session'),
   // use the favorite's URL directly. Otherwise, fetch via useMediaUrl (for jobs from project history)
   const isPlaceholderJob = job.projectId === 'current-session';
   const shouldUseFavoriteUrl = !!favoriteData && isPlaceholderJob;
-  
+
   const { url: mediaUrl, loading, error } = useMediaUrl({
     projectId: job.projectId,
     jobId: job.id,
@@ -572,7 +637,7 @@ function SlideshowContent({ job, sogniClient, active, modelName, onUrlLoaded }: 
     sogniClient,
     enabled: !shouldUseFavoriteUrl && job.projectId !== 'current-session' && !!sogniClient // Skip useMediaUrl if using favorite URL or if it's a placeholder without favorite data
   });
-  
+
   // Use favorite URL if available (for placeholder jobs), otherwise use mediaUrl
   // If mediaUrl is not available and we have a favorite, use the favorite URL as fallback
   const url = shouldUseFavoriteUrl ? favoriteData!.url : (mediaUrl || favoriteData?.url);
@@ -602,14 +667,38 @@ function SlideshowContent({ job, sogniClient, active, modelName, onUrlLoaded }: 
     );
   }
 
-  // For restoration app, we only handle images
+  // For restoration app, we only handle images - no animation, instant switch
   return (
     <div className="slideshow-image-wrapper">
-      <img
-        src={url}
-        alt={`Restored photo ${job.id.slice(0, 8)}`}
-        className="slideshow-image"
-      />
+      <div className="slideshow-image-container">
+        <img
+          src={url}
+          alt={`Restored photo ${job.id.slice(0, 8)}`}
+          className="slideshow-image"
+        />
+        {/* Heart button on image */}
+        {onToggleFavorite && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleFavorite();
+            }}
+            aria-label={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
+            title={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
+            className="slideshow-heart-button"
+          >
+            {isFavorited ? (
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#7BA3D0"/>
+              </svg>
+            ) : (
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M16.5 3c-1.74 0-3.41.81-4.5 2.09C10.91 3.81 9.24 3 7.5 3 4.42 3 2 5.42 2 8.5c0 3.78 3.4 6.86 8.55 11.54L12 21.35l1.45-1.32C18.6 15.36 22 12.28 22 8.5 22 5.42 19.58 3 16.5 3zm-4.4 15.55l-.1.1-.1-.1C7.14 14.24 4 11.39 4 8.5 4 6.5 5.5 5 7.5 5c1.54 0 3.04.99 3.57 2.36h1.87C13.46 5.99 14.96 5 16.5 5c2 0 3.5 1.5 3.5 3.5 0 2.89-3.14 5.74-7.9 10.05z" fill="white"/>
+              </svg>
+            )}
+          </button>
+        )}
+      </div>
     </div>
   );
 }

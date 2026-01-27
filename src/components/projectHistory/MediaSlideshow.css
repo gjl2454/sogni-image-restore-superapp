@@ -10,6 +10,17 @@
   align-items: center;
   justify-content: center;
   padding: 20px;
+  /* Smooth fade-in animation */
+  animation: slideshowOverlayFadeIn 0.25s ease;
+}
+
+@keyframes slideshowOverlayFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .media-slideshow-content {
@@ -22,6 +33,48 @@
   background: var(--color-bg-elevated);
   border-radius: var(--radius-lg);
   overflow: hidden;
+  /* Smooth scale-in animation */
+  animation: slideshowContentFadeIn 0.3s ease;
+}
+
+@keyframes slideshowContentFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Closing animation */
+.media-slideshow-overlay.closing {
+  animation: slideshowOverlayFadeOut 0.2s ease forwards;
+}
+
+.media-slideshow-overlay.closing .media-slideshow-content {
+  animation: slideshowContentFadeOut 0.2s ease forwards;
+}
+
+@keyframes slideshowOverlayFadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes slideshowContentFadeOut {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.95);
+  }
 }
 
 .media-slideshow-top-bar {
@@ -170,9 +223,45 @@
   overflow: auto;
 }
 
+.slideshow-image-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .slideshow-image {
   max-width: 100%;
   max-height: calc(90vh - 200px);
   object-fit: contain;
   border-radius: var(--radius-md);
+}
+
+/* Heart button styling */
+.slideshow-heart-button {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  border: none;
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+
+.slideshow-heart-button:hover {
+  background: rgba(0, 0, 0, 0.8);
+  transform: scale(1.1);
+}
+
+.slideshow-loading,
+.slideshow-error {
+  /* No animation - instant display */
 }

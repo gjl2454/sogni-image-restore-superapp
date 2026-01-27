@@ -282,7 +282,7 @@ const RecentProjects: React.FC<RecentProjectsProps> = ({ sogniClient, onClose })
         </div>
 
         {/* Content */}
-        <div className="recent-projects-content" ref={containerRef}>
+        <div className={`recent-projects-content ${loading && visibleProjects.length > 0 ? 'loading' : ''}`} ref={containerRef}>
           {activeTab === 'recents' ? (
             <>
               {/* Expiry Info Banner */}
@@ -611,15 +611,15 @@ const RecentProjects: React.FC<RecentProjectsProps> = ({ sogniClient, onClose })
         // Create a key that changes when favorites change
         // CRITICAL: Include favorites.length and the full favorites array in the key
         // This forces MediaSlideshow to re-render with updated project when favorites change
-        const favoritesKey = openedFromFavorites 
+        const favoritesKey = openedFromFavorites
           ? favorites.map(f => f.jobId).sort().join(',')
           : '';
-        
+
         // Count visible jobs - this changes when the combined project is recalculated
         const visibleJobsCount = currentProject.jobs.filter(
           j => j.status === 'completed' && !j.hidden && !j.isNSFW
         ).length;
-        
+
         // Create a comprehensive key that changes whenever favorites change
         // This ensures MediaSlideshow re-renders with the updated project when favorites change
         // For combined favorites, include favorites.length to detect when new favorites are added
